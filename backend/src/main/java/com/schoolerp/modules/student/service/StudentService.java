@@ -194,7 +194,7 @@ public class StudentService {
         }
 
         // Get current academic year
-        AcademicYear currentYear = yearRepository.findBySchoolIdAndCurrentTrue(schoolId)
+        AcademicYear currentYear = yearRepository.findCurrentBySchoolId(schoolId)
                 .orElseThrow(() -> new BusinessException("No current academic year. Please configure one first."));
 
         // Save student
@@ -297,7 +297,7 @@ public class StudentService {
     }
 
     private UUID getCurrentYearId(UUID schoolId) {
-        return yearRepository.findBySchoolIdAndCurrentTrue(schoolId)
+        return yearRepository.findCurrentBySchoolId(schoolId)
                 .map(AcademicYear::getId)
                 .orElseThrow(() -> new BusinessException("No current academic year configured"));
     }

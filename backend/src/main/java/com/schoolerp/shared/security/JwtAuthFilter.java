@@ -64,10 +64,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             }
         } catch (Exception e) {
             log.error("JWT authentication error: {}", e.getMessage());
-        } finally {
-            // Always clear tenant context and continue filter chain
-            TenantContext.clear();
+        }
+
+        try {
             filterChain.doFilter(request, response);
+        } finally {
+            // Clear AFTER the full request has been processed
+            TenantContext.clear();
+            SecurityContextHolder.clearContext();
         }
     }
 

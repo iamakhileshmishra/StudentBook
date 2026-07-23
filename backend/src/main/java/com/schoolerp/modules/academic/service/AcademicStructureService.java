@@ -33,14 +33,14 @@ public class AcademicStructureService {
 
     public AcademicYearDto getCurrentAcademicYear() {
         UUID schoolId = TenantContext.getSchoolId();
-        return yearRepository.findBySchoolIdAndCurrentTrue(schoolId)
+        return yearRepository.findCurrentBySchoolId(schoolId)
                 .map(this::toYearDto)
                 .orElseThrow(() -> new ResourceNotFoundException("No current academic year configured"));
     }
 
     public UUID getCurrentAcademicYearId() {
         UUID schoolId = TenantContext.getSchoolId();
-        return yearRepository.findBySchoolIdAndCurrentTrue(schoolId)
+        return yearRepository.findCurrentBySchoolId(schoolId)
                 .map(AcademicYear::getId)
                 .orElseThrow(() -> new ResourceNotFoundException("No current academic year configured"));
     }

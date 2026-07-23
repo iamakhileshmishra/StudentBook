@@ -2,6 +2,8 @@ package com.schoolerp.modules.academic.repository;
 
 import com.schoolerp.modules.academic.entity.AcademicYear;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -11,5 +13,7 @@ import java.util.UUID;
 @Repository
 public interface AcademicYearRepository extends JpaRepository<AcademicYear, UUID> {
     List<AcademicYear> findBySchoolIdOrderByStartDateDesc(UUID schoolId);
-    Optional<AcademicYear> findBySchoolIdAndCurrentTrue(UUID schoolId);
+
+    @Query("SELECT a FROM AcademicYear a WHERE a.schoolId = :schoolId AND a.isCurrent = true")
+    Optional<AcademicYear> findCurrentBySchoolId(@Param("schoolId") UUID schoolId);
 }

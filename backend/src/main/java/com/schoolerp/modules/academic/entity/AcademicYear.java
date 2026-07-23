@@ -33,7 +33,7 @@ public class AcademicYear {
     private LocalDate endDate;
 
     @Column(name = "is_current", nullable = false)
-    private boolean current;
+    private boolean isCurrent;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
