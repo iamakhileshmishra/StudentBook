@@ -29,7 +29,7 @@ VALUES (
     'a0000000-0000-0000-0000-000000000001',
     'admin',
     'School Administrator',
-    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewdBPj0/XSMzTbKO',
+    '$2a$12$dBptDk9onOawvNHrQRBTZ.13VNGeHcBZm0IDam.feu1WM/6j3P376',
     'SCHOOL_ADMIN',
     TRUE
 );

@@ -6,7 +6,6 @@ import {
   Receipt,
   Settings,
   LogOut,
-  BookOpen,
   GraduationCap,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'

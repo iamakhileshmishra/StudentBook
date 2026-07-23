@@ -1,26 +1,25 @@
 # ──────────────────────────────────────────────────────────────────────────
 # Multi-stage build for Spring Boot backend
+# Uses Maven installed in the image (no wrapper needed)
 # ──────────────────────────────────────────────────────────────────────────
 
-# Stage 1: Build
+# Stage 1: Build with Maven + JDK 21
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /app
 
-# Copy Maven wrapper and pom first (layer caching)
-COPY pom.xml .
-COPY .mvn .mvn
-COPY mvnw .
-RUN chmod +x mvnw
+# Install Maven
+RUN apk add --no-cache maven
 
-# Download dependencies (cached unless pom.xml changes)
-RUN ./mvnw dependency:go-offline -B
+# Copy pom.xml first (layer caching — only re-downloads deps when pom changes)
+COPY pom.xml .
+RUN mvn dependency:go-offline -B -q
 
 # Copy source and build
 COPY src ./src
-RUN ./mvnw package -DskipTests -B
+RUN mvn package -DskipTests -B -q
 
 # ──────────────────────────────────────────────────────────────────────────
-# Stage 2: Runtime (slim JRE image)
+# Stage 2: Runtime (slim JRE image — no JDK, no Maven)
 # ──────────────────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
@@ -33,10 +32,10 @@ COPY --from=builder /app/target/*.jar app.jar
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
     CMD wget -qO- http://localhost:8080/api/health || exit 1
 
-ENTRYPOINT ["java", "-jar", \
+ENTRYPOINT ["java", \
+    "-jar", \
     "-Djava.security.egd=file:/dev/./urandom", \
-    "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:prod}", \
     "app.jar"]

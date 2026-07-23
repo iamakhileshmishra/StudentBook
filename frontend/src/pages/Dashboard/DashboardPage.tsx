@@ -1,7 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import {
-  IndianRupee, Users, TrendingUp, AlertCircle,
-  CalendarDays, CheckCircle2, Clock, ArrowUpRight
+  IndianRupee, TrendingUp, AlertCircle, CheckCircle2
 } from 'lucide-react'
 import api from '@/api/axios'
 import { formatCurrency, getMonthName } from '@/lib/utils'
