@@ -6,6 +6,10 @@ import { LoginPage } from '@/pages/Login/LoginPage'
 import { DashboardPage } from '@/pages/Dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/Students/StudentsPage'
 import { StudentDetailPage } from '@/pages/Students/StudentDetailPage'
+import { FeeStructurePage } from '@/pages/FeeStructure/FeeStructurePage'
+import { FeeCollectionPage } from '@/pages/FeeCollection/FeeCollectionPage'
+import { PaymentsPage } from '@/pages/Payments/PaymentsPage'
+import { SettingsPage } from '@/pages/Settings/SettingsPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,12 +35,12 @@ function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/students" element={<StudentsPage />} />
               <Route path="/students/:id" element={<StudentDetailPage />} />
-              <Route path="/collect-fee" element={<PlaceholderPage title="Collect Fee" desc="Fee collection module coming in the next milestone." />} />
-              <Route path="/payments" element={<PlaceholderPage title="Payment History" desc="Payment records and receipts coming soon." />} />
-              <Route path="/settings" element={<PlaceholderPage title="Settings" desc="School settings and configuration coming soon." />} />
+              <Route path="/fee-structure" element={<FeeStructurePage />} />
+              <Route path="/collect-fee" element={<FeeCollectionPage />} />
+              <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Route>
-
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -48,7 +48,7 @@ export function StudentsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Students</h1>
           <p className="text-slate-500 text-sm mt-1">
-            {data ? `${data.totalElements} students enrolled` : 'Loading...'}
+            {data ? `${data.activeCount} students enrolled` : 'Loading...'}
           </p>
         </div>
         <button

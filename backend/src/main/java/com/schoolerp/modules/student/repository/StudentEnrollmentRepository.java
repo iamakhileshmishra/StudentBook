@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface StudentEnrollmentRepository extends JpaRepository<StudentEnrollment, UUID> {
     Optional<StudentEnrollment> findByStudentIdAndAcademicYearId(UUID studentId, UUID academicYearId);
     Optional<StudentEnrollment> findByStudentIdAndAcademicYearIdAndSchoolId(UUID studentId, UUID academicYearId, UUID schoolId);
+    long countBySchoolIdAndAcademicYearIdAndStatus(UUID schoolId, UUID academicYearId, String status);
 }

@@ -34,33 +34,40 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         try {
             String token = extractToken(request);
-            if (token != null && jwtUtil.isTokenValid(token)) {
-                Claims claims = jwtUtil.validateAndExtractClaims(token);
+            if (token != null) {
+                if (jwtUtil.isTokenValid(token)) {
+                    Claims claims = jwtUtil.validateAndExtractClaims(token);
 
-                String tokenType = claims.get("type", String.class);
-                if (!"ACCESS".equals(tokenType)) {
-                    log.debug("Non-access token used for API request");
-                    filterChain.doFilter(request, response);
+                    String tokenType = claims.get("type", String.class);
+                    if (!"ACCESS".equals(tokenType)) {
+                        log.debug("Non-access token used for API request");
+                        filterChain.doFilter(request, response);
+                        return;
+                    }
+
+                    UUID userId = UUID.fromString(claims.getSubject());
+                    UUID schoolId = UUID.fromString(claims.get("schoolId", String.class));
+                    String role = claims.get("role", String.class);
+
+                    // Set tenant context for this request thread
+                    TenantContext.setSchoolId(schoolId);
+
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userId.toString(),
+                                    null,
+                                    List.of(new SimpleGrantedAuthority("ROLE_" + role))
+                            );
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\": \"Unauthorized\", \"message\": \"Token is invalid or expired\"}");
                     return;
                 }
-
-                UUID userId = UUID.fromString(claims.getSubject());
-                UUID schoolId = UUID.fromString(claims.get("schoolId", String.class));
-                String role = claims.get("role", String.class);
-
-                // Set tenant context for this request thread
-                TenantContext.setSchoolId(schoolId);
-
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userId.toString(),
-                                null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role))
-                        );
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
             log.error("JWT authentication error: {}", e.getMessage());

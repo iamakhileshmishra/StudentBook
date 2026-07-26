@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   Users,
+  LayoutGrid,
   IndianRupee,
   Receipt,
   Settings,
@@ -14,6 +15,7 @@ import api from '@/api/axios'
 const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/students',  icon: Users,           label: 'Students'  },
+  { to: '/fee-structure', icon: LayoutGrid,  label: 'Fee Structure' },
   { to: '/collect-fee', icon: IndianRupee,   label: 'Collect Fee' },
   { to: '/payments',  icon: Receipt,         label: 'Payments'  },
   { to: '/settings',  icon: Settings,        label: 'Settings'  },

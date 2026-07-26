@@ -2,9 +2,13 @@ import { useQuery } from '@tanstack/react-query'
 import {
   IndianRupee, TrendingUp, AlertCircle, CheckCircle2
 } from 'lucide-react'
+import { useState } from 'react'
 import api from '@/api/axios'
+import { paymentsApi, FullReceiptDto } from '@/api/payments'
 import { formatCurrency, getMonthName } from '@/lib/utils'
 import { useAuthStore } from '@/store/authStore'
+import { DashboardStudentListModal } from './components/DashboardStudentListModal'
+import { ReceiptModal } from '../FeeCollection/components/ReceiptModal'
 
 interface DashboardSummary {
   todayCollection: number
@@ -41,6 +45,23 @@ const currentYear = now.getFullYear()
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user)
 
+  // Modals state
+  const [selectedClass, setSelectedClass] = useState<{ id: string, name: string } | null>(null)
+  const [selectedReceipt, setSelectedReceipt] = useState<FullReceiptDto | null>(null)
+  const [isReceiptLoading, setIsReceiptLoading] = useState(false)
+
+  const handleReceiptClick = async (receiptNumber: string) => {
+    try {
+      setIsReceiptLoading(true)
+      const data = await paymentsApi.getReceipt(receiptNumber)
+      setSelectedReceipt(data)
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsReceiptLoading(false)
+    }
+  }
+
   const { data: summary, isLoading: summaryLoading } = useQuery({
     queryKey: ['dashboard-summary', currentMonth, currentYear],
     queryFn: () =>
@@ -63,7 +84,7 @@ export function DashboardPage() {
   })
 
   const paidPercent = summary
-    ? Math.round((summary.studentsPaid / Math.max(summary.totalStudents, 1)) * 100)
+    ? Math.min(100, Math.round((summary.studentsPaid / Math.max(summary.totalStudents, 1)) * 100))
     : 0
 
   return (
@@ -163,8 +184,22 @@ export function DashboardPage() {
                   const pct = total > 0 ? Math.round((row.collected / total) * 100) : 0
                   return (
                     <tr key={row.classId}>
-                      <td className="font-medium text-slate-800">{row.className}</td>
-                      <td>{row.totalStudents}</td>
+                      <td>
+                        <button 
+                          onClick={() => setSelectedClass({ id: row.classId, name: row.className })}
+                          className="font-medium text-brand-600 hover:text-brand-700 hover:underline text-left"
+                        >
+                          {row.className}
+                        </button>
+                      </td>
+                      <td>
+                        <button 
+                          onClick={() => setSelectedClass({ id: row.classId, name: row.className })}
+                          className="text-slate-600 hover:text-brand-600 hover:underline"
+                        >
+                          {row.totalStudents}
+                        </button>
+                      </td>
                       <td className="text-emerald-600 font-medium">{formatCurrency(row.collected)}</td>
                       <td className={row.pending > 0 ? 'text-amber-600 font-medium' : 'text-slate-400'}>
                         {formatCurrency(row.pending)}
@@ -208,7 +243,15 @@ export function DashboardPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate">{txn.studentName}</p>
-                  <p className="text-xs text-slate-500">{txn.className} · #{txn.receiptNumber}</p>
+                  <p className="text-xs text-slate-500">
+                    {txn.className} · 
+                    <button 
+                      onClick={() => handleReceiptClick(txn.receiptNumber)}
+                      className="hover:text-brand-600 hover:underline ml-1"
+                    >
+                      #{txn.receiptNumber}
+                    </button>
+                  </p>
                 </div>
                 <div className="text-right flex-shrink-0">
                   <p className="text-sm font-semibold text-emerald-600">{formatCurrency(txn.amountPaid)}</p>
@@ -224,6 +267,27 @@ export function DashboardPage() {
           </div>
         </div>
       </div>
+
+      <DashboardStudentListModal
+        isOpen={!!selectedClass}
+        onClose={() => setSelectedClass(null)}
+        classId={selectedClass?.id || ''}
+        className={selectedClass?.name || ''}
+        month={currentMonth}
+        year={currentYear}
+        monthName={getMonthName(currentMonth)}
+      />
+
+      <ReceiptModal
+        isOpen={!!selectedReceipt}
+        onClose={() => setSelectedReceipt(null)}
+        receipt={selectedReceipt?.receipt || null}
+        student={selectedReceipt?.student || null}
+        dues={selectedReceipt?.dues || null}
+        lateFee={selectedReceipt?.lateFee || 0}
+        concession={selectedReceipt?.concession || 0}
+        grandTotal={selectedReceipt?.grandTotal || 0}
+      />
     </div>
   )
 }

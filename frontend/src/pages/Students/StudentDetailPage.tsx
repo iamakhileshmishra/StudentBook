@@ -1,11 +1,14 @@
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Phone, GraduationCap, IndianRupee, Calendar, Loader2 } from 'lucide-react'
+import { ArrowLeft, Phone, GraduationCap, IndianRupee, Calendar, Loader2, Edit2 } from 'lucide-react'
 import { studentsApi } from '@/api/students'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { EditStudentModal } from './components/EditStudentModal'
 
 export function StudentDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const { data: student, isLoading } = useQuery({
     queryKey: ['student', id],
@@ -31,11 +34,20 @@ export function StudentDetailPage() {
   }
 
   return (
-    <div className="p-8 animate-fade-in">
-      {/* Breadcrumb */}
-      <Link to="/students" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 mb-6 w-fit">
-        <ArrowLeft className="w-4 h-4" /> Back to Students
-      </Link>
+    <div className="p-8 animate-fade-in relative">
+      {/* Breadcrumb and Edit Action */}
+      <div className="flex justify-between items-center mb-6">
+        <Link to="/students" className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 w-fit">
+          <ArrowLeft className="w-4 h-4" /> Back to Students
+        </Link>
+        <button 
+          onClick={() => setShowEditModal(true)}
+          className="btn-secondary flex items-center gap-2"
+        >
+          <Edit2 className="w-4 h-4" />
+          Edit Student
+        </button>
+      </div>
 
       {/* Profile header */}
       <div className="card p-6 mb-6">
@@ -48,7 +60,10 @@ export function StudentDetailPage() {
           <div className="flex-1">
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold text-slate-900">{student.fullName}</h1>
-              <span className={student.status === 'ACTIVE' ? 'badge-green' : 'badge-red'}>
+              <span className={
+                student.status === 'ACTIVE' ? 'badge-green' : 
+                student.status === 'LEFT' ? 'badge-red' : 'badge-gray'
+              }>
                 {student.status}
               </span>
               {student.staffChild && <span className="badge-gray">Staff Child</span>}
@@ -108,6 +123,13 @@ export function StudentDetailPage() {
           </div>
         </div>
       </div>
+
+      {showEditModal && (
+        <EditStudentModal 
+          student={student} 
+          onClose={() => setShowEditModal(false)} 
+        />
+      )}
     </div>
   )
 }

@@ -44,7 +44,17 @@ public class StudentController {
     @PutMapping("/{id}")
     public ResponseEntity<StudentDetailDto> updateStudent(
             @PathVariable UUID id,
-            @Valid @RequestBody StudentCreateRequest request) {
+            @Valid @RequestBody UpdateStudentRequest request) {
         return ResponseEntity.ok(studentService.updateStudent(id, request));
+    }
+    
+    @PostMapping("/{id}/remove")
+    public ResponseEntity<Void> deleteStudent(
+            @PathVariable UUID id,
+            @Valid @RequestBody DeleteStudentRequest request,
+            Authentication auth) {
+        UUID adminUserId = UUID.fromString(auth.getName());
+        studentService.deleteStudent(id, request.getPassword(), adminUserId);
+        return ResponseEntity.noContent().build();
     }
 }

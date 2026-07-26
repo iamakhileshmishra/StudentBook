@@ -74,35 +74,6 @@ FROM classes
 WHERE school_id = 'a0000000-0000-0000-0000-000000000001';
 
 -- ───────────────────────────────────────────────────────────────────────────
--- Fee Categories (8 default categories)
--- ───────────────────────────────────────────────────────────────────────────
-INSERT INTO fee_categories (school_id, name, display_order, is_active) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'Tuition Fee',     1, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Examination Fee', 2, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Development Fee', 3, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Computer Fee',    4, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Transport Fee',   5, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Sports Fee',      6, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Laboratory Fee',  7, TRUE),
-    ('a0000000-0000-0000-0000-000000000001', 'Miscellaneous',   8, TRUE);
-
--- ───────────────────────────────────────────────────────────────────────────
--- Monthly Fee Structures: Initialize all to ₹0 for all classes
--- Admin will fill in actual amounts via the Fee Setup screen after login.
--- ───────────────────────────────────────────────────────────────────────────
-INSERT INTO monthly_fee_structures (school_id, academic_year_id, class_id, fee_category_id, default_amount)
-SELECT
-    'a0000000-0000-0000-0000-000000000001' AS school_id,
-    'c0000000-0000-0000-0000-000000000001' AS academic_year_id,
-    c.id AS class_id,
-    fc.id AS fee_category_id,
-    0.00 AS default_amount
-FROM classes c
-CROSS JOIN fee_categories fc
-WHERE c.school_id = 'a0000000-0000-0000-0000-000000000001'
-  AND fc.school_id = 'a0000000-0000-0000-0000-000000000001';
-
--- ───────────────────────────────────────────────────────────────────────────
 -- Seed audit log entry for initial setup
 -- ───────────────────────────────────────────────────────────────────────────
 INSERT INTO audit_logs (school_id, user_id, action, entity_type, entity_id, description)

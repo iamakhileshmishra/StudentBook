@@ -10,6 +10,7 @@ import java.util.List;
 public class StudentPageResponse {
     private List<StudentSummaryDto> content;
     private long totalElements;
+    private long activeCount;
     private int totalPages;
     private int currentPage;
     private int pageSize;

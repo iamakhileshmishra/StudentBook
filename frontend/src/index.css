@@ -53,7 +53,7 @@
   }
 
   .card {
-    @apply bg-white rounded-xl border border-slate-200 shadow-sm;
+    @apply bg-white rounded-xl border border-slate-200 shadow-sm transition-colors duration-200;
   }
 
   .card-header {
@@ -147,19 +147,6 @@
 .main-content {
   margin-left: var(--sidebar-width);
   @apply min-h-screen flex flex-col;
-}
-
-/* ── Print styles (Receipt) ──────────────────────────────────── */
-@media print {
-  body * { visibility: hidden !important; }
-  #receipt-print-area, #receipt-print-area * { visibility: visible !important; }
-  #receipt-print-area {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-  }
-  @page { size: A4; margin: 8mm; }
 }
 
 /* ── Animations ──────────────────────────────────────────────── */

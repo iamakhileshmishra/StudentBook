@@ -31,7 +31,7 @@ export function AddStudentModal({ onClose }: Props) {
   const [success, setSuccess] = useState(false)
   const queryClient = useQueryClient()
 
-  const { data: classes } = useQuery({
+  const { data: classes, isLoading: isClassesLoading, isError: isClassesError, refetch: refetchClasses } = useQuery({
     queryKey: ['classes'],
     queryFn: academicApi.getClasses,
     staleTime: Infinity,
@@ -232,23 +232,34 @@ export function AddStudentModal({ onClose }: Props) {
                 <div className="space-y-4 animate-fade-in">
                   <div>
                     <label className="label">Class <span className="text-red-500">*</span></label>
-                    <div className="grid grid-cols-4 gap-2">
-                      {classes?.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => set('classId', c.id)}
-                          className={cn(
-                            'py-3 px-2 rounded-lg border-2 text-sm font-medium transition-all',
-                            form.classId === c.id
-                              ? 'border-brand-500 bg-brand-50 text-brand-700'
-                              : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          )}
-                        >
-                          {c.name}
-                        </button>
-                      ))}
-                    </div>
+                    {isClassesLoading ? (
+                      <div className="flex items-center justify-center py-4 text-slate-400">
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading classes...
+                      </div>
+                    ) : isClassesError ? (
+                      <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm flex items-center justify-between border border-red-100">
+                        <span>Failed to load classes.</span>
+                        <button type="button" onClick={() => refetchClasses()} className="font-bold hover:underline">Retry</button>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-4 gap-2">
+                        {classes?.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => set('classId', c.id)}
+                            className={cn(
+                              'py-3 px-2 rounded-lg border-2 text-sm font-medium transition-all',
+                              form.classId === c.id
+                                ? 'border-brand-500 bg-brand-50 text-brand-700'
+                                : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            )}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                     {errors.classId && <p className="text-red-500 text-xs mt-1">{errors.classId}</p>}
                   </div>
 

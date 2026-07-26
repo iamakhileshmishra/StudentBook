@@ -36,6 +36,8 @@ public class StudentService {
     private final ClassRepository classRepository;
     private final SectionRepository sectionRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.schoolerp.modules.auth.repository.UserRepository userRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     // ─── Search / List ────────────────────────────────────────────────────────
 
@@ -55,11 +57,10 @@ public class StudentService {
                     se.id AS enrollment_id
                 FROM students s
                 LEFT JOIN student_enrollments se
-                    ON se.student_id = s.id AND se.academic_year_id = ? AND se.status = 'ACTIVE'
+                    ON se.student_id = s.id AND se.academic_year_id = ?
                 LEFT JOIN classes c ON c.id = se.class_id
                 LEFT JOIN sections sec ON sec.id = se.section_id
                 WHERE s.school_id = ?
-                AND s.status = 'ACTIVE'
                 """);
 
         List<Object> params = new ArrayList<>(Arrays.asList(currentYearId, schoolId));
@@ -75,10 +76,14 @@ public class StudentService {
             params.add(classId);
         }
 
-        // Count query
+        // Count queries
         String countSql = "SELECT COUNT(*) FROM (" + sql + ") AS cnt";
         Long total = jdbcTemplate.queryForObject(countSql, Long.class, params.toArray());
         if (total == null) total = 0L;
+
+        String activeCountSql = "SELECT COUNT(*) FROM (" + sql + " AND s.status = 'ACTIVE') AS cnt";
+        Long activeCount = jdbcTemplate.queryForObject(activeCountSql, Long.class, params.toArray());
+        if (activeCount == null) activeCount = 0L;
 
         // Paged query
         sql.append(" ORDER BY (CASE WHEN s.admission_number ~ '^[0-9]+$' THEN CAST(s.admission_number AS INTEGER) ELSE 99999 END) ASC");
@@ -111,6 +116,7 @@ public class StudentService {
         return StudentPageResponse.builder()
                 .content(content)
                 .totalElements(total)
+                .activeCount(activeCount)
                 .totalPages(totalPages)
                 .currentPage(page)
                 .pageSize(size)
@@ -264,7 +270,7 @@ public class StudentService {
     // ─── Update student ───────────────────────────────────────────────────────
 
     @Transactional
-    public StudentDetailDto updateStudent(UUID studentId, StudentCreateRequest req) {
+    public StudentDetailDto updateStudent(UUID studentId, UpdateStudentRequest req) {
         UUID schoolId = TenantContext.getSchoolId();
         Student student = studentRepository.findById(studentId)
                 .filter(s -> s.getSchoolId().equals(schoolId))
@@ -287,6 +293,36 @@ public class StudentService {
         studentRepository.save(student);
 
         return getStudent(studentId);
+    }
+    
+    // ─── Delete student ───────────────────────────────────────────────────────
+
+    @Transactional
+    public void deleteStudent(UUID studentId, String adminPassword, UUID adminUserId) {
+        UUID schoolId = TenantContext.getSchoolId();
+        
+        com.schoolerp.modules.auth.entity.User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> new BusinessException("Admin user not found"));
+                
+        if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
+            throw new BusinessException("Invalid admin password");
+        }
+        
+        Student student = studentRepository.findById(studentId)
+                .filter(s -> s.getSchoolId().equals(schoolId))
+                .orElseThrow(() -> new ResourceNotFoundException("Student", studentId));
+                
+        student.setStatus("LEFT");
+        studentRepository.save(student);
+        
+        UUID currentYearId = getCurrentYearId(schoolId);
+        enrollmentRepository.findByStudentIdAndAcademicYearIdAndSchoolId(studentId, currentYearId, schoolId)
+                .ifPresent(en -> {
+                    en.setStatus("LEFT");
+                    enrollmentRepository.save(en);
+                });
+                
+        log.info("Student {} ({}) has been marked as LEFT by admin {}", student.getAdmissionNumber(), student.getFirstName(), admin.getEmail());
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────

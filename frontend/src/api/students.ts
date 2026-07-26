@@ -20,6 +20,7 @@ export interface StudentSummaryDto {
 export interface StudentPageResponse {
   content: StudentSummaryDto[]
   totalElements: number
+  activeCount: number
   totalPages: number
   currentPage: number
   pageSize: number
@@ -83,8 +84,11 @@ export const studentsApi = {
     api.get<StudentDetailDto>(`/students/${id}`).then((r) => r.data),
 
   create: (data: StudentCreateRequest) =>
-    api.post<StudentDetailDto>('/students', data).then((r) => r.data),
-
-  update: (id: string, data: StudentCreateRequest) =>
-    api.put<StudentDetailDto>(`/students/${id}`, data).then((r) => r.data),
+    api.post<StudentDetailDto>('/students', data).then(r => r.data),
+    
+  updateStudent: (id: string, data: any) =>
+    api.put<StudentDetailDto>(`/students/${id}`, data).then(r => r.data),
+    
+  removeStudent: (id: string, password: string) =>
+    api.post<void>(`/students/${id}/remove`, { password }).then(r => r.data),
 }
