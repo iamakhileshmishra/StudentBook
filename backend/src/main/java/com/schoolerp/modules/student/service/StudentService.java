@@ -191,10 +191,11 @@ public class StudentService {
         // Generate or validate admission number
         String admissionNumber;
         if (StringUtils.hasText(req.getAdmissionNumber())) {
-            if (studentRepository.existsBySchoolIdAndAdmissionNumber(schoolId, req.getAdmissionNumber().trim())) {
-                throw new BusinessException("Admission number " + req.getAdmissionNumber() + " is already taken");
+            String sanitizedAdm = req.getAdmissionNumber().trim().replaceFirst("^0+(?!$)", "");
+            if (studentRepository.existsBySchoolIdAndAdmissionNumber(schoolId, sanitizedAdm)) {
+                throw new BusinessException("Admission number " + sanitizedAdm + " is already taken");
             }
-            admissionNumber = req.getAdmissionNumber().trim();
+            admissionNumber = sanitizedAdm;
         } else {
             admissionNumber = generateNextAdmissionNumber(schoolId);
         }

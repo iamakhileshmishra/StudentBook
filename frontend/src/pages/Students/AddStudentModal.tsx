@@ -62,9 +62,30 @@ export function AddStudentModal({ onClose }: Props) {
 
   const validate = (): boolean => {
     const errs: Record<string, string> = {}
+    const today = new Date().toISOString().split('T')[0]
+    
     if (!form.firstName.trim()) errs.firstName = 'Required'
     if (!form.lastName.trim()) errs.lastName = 'Required'
-    if (!form.primaryContactPhone.trim()) errs.primaryContactPhone = 'Required'
+    
+    if (!form.dateOfBirth) errs.dateOfBirth = 'Required'
+    else if (form.dateOfBirth > today) errs.dateOfBirth = 'Cannot be in future'
+    
+    if (!form.fatherName?.trim()) errs.fatherName = 'Required'
+    if (!form.motherName?.trim()) errs.motherName = 'Required'
+    
+    if (!form.enrollmentDate) errs.enrollmentDate = 'Required'
+    else if (form.enrollmentDate > today) errs.enrollmentDate = 'Cannot be in future'
+    
+    if (!form.primaryContactPhone.trim()) {
+      errs.primaryContactPhone = 'Required'
+    } else if (!/^\d{10}$/.test(form.primaryContactPhone)) {
+      errs.primaryContactPhone = 'Must be 10 digits'
+    }
+    
+    if (form.alternatePhone && !/^\d{10}$/.test(form.alternatePhone)) {
+      errs.alternatePhone = 'Must be 10 digits'
+    }
+    
     if (!form.classId) errs.classId = 'Required'
     if (!form.sectionId) errs.sectionId = 'Required'
     setErrors(errs)
@@ -74,9 +95,9 @@ export function AddStudentModal({ onClose }: Props) {
   const handleSubmit = () => {
     if (!validate()) {
       // Switch to section with first error
-      if (errors.firstName || errors.lastName) setSection('personal')
-      else if (errors.primaryContactPhone) setSection('parent')
-      else if (errors.classId || errors.sectionId) setSection('class')
+      if (errors.firstName || errors.lastName || errors.dateOfBirth) setSection('personal')
+      else if (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName) setSection('parent')
+      else if (errors.classId || errors.sectionId || errors.enrollmentDate) setSection('class')
       return
     }
 
@@ -125,9 +146,9 @@ export function AddStudentModal({ onClose }: Props) {
               {SECTIONS.map((s) => {
                 const Icon = s.icon
                 const hasError = (
-                  (s.id === 'personal' && (errors.firstName || errors.lastName)) ||
-                  (s.id === 'parent' && errors.primaryContactPhone) ||
-                  (s.id === 'class' && (errors.classId || errors.sectionId))
+                  (s.id === 'personal' && (errors.firstName || errors.lastName || errors.dateOfBirth)) ||
+                  (s.id === 'parent' && (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName)) ||
+                  (s.id === 'class' && (errors.classId || errors.sectionId || errors.enrollmentDate))
                 )
                 return (
                   <button
@@ -169,9 +190,10 @@ export function AddStudentModal({ onClose }: Props) {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Date of Birth</label>
-                      <input type="date" className="input-field" value={form.dateOfBirth}
+                      <label className="label">Date of Birth <span className="text-red-500">*</span></label>
+                      <input type="date" className={cn('input-field', errors.dateOfBirth && 'border-red-400')} value={form.dateOfBirth}
                         onChange={(e) => set('dateOfBirth', e.target.value)} />
+                      {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth}</p>}
                     </div>
                     <div>
                       <label className="label">Gender</label>
@@ -196,27 +218,36 @@ export function AddStudentModal({ onClose }: Props) {
                 <div className="space-y-4 animate-fade-in">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Father's Name</label>
-                      <input className="input-field" value={form.fatherName ?? ''}
+                      <label className="label">Father's Name <span className="text-red-500">*</span></label>
+                      <input className={cn('input-field', errors.fatherName && 'border-red-400')} value={form.fatherName ?? ''}
                         onChange={(e) => set('fatherName', e.target.value)} placeholder="Suresh Kumar" />
+                      {errors.fatherName && <p className="text-red-500 text-xs mt-1">{errors.fatherName}</p>}
                     </div>
                     <div>
-                      <label className="label">Mother's Name</label>
-                      <input className="input-field" value={form.motherName ?? ''}
+                      <label className="label">Mother's Name <span className="text-red-500">*</span></label>
+                      <input className={cn('input-field', errors.motherName && 'border-red-400')} value={form.motherName ?? ''}
                         onChange={(e) => set('motherName', e.target.value)} placeholder="Priya Kumar" />
+                      {errors.motherName && <p className="text-red-500 text-xs mt-1">{errors.motherName}</p>}
                     </div>
                   </div>
                   <div>
                     <label className="label">Primary Phone <span className="text-red-500">*</span></label>
                     <input id="student-phone" type="tel" className={cn('input-field', errors.primaryContactPhone && 'border-red-400')}
-                      value={form.primaryContactPhone} onChange={(e) => set('primaryContactPhone', e.target.value)}
+                      value={form.primaryContactPhone} onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '')
+                        if (val.length <= 10) set('primaryContactPhone', val)
+                      }}
                       placeholder="9876543210" />
                     {errors.primaryContactPhone && <p className="text-red-500 text-xs mt-1">{errors.primaryContactPhone}</p>}
                   </div>
                   <div>
                     <label className="label">Alternate Phone</label>
-                    <input type="tel" className="input-field" value={form.alternatePhone ?? ''}
-                      onChange={(e) => set('alternatePhone', e.target.value)} placeholder="Optional" />
+                    <input type="tel" className={cn('input-field', errors.alternatePhone && 'border-red-400')} value={form.alternatePhone ?? ''}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '')
+                        if (val.length <= 10) set('alternatePhone', val)
+                      }} placeholder="Optional" />
+                    {errors.alternatePhone && <p className="text-red-500 text-xs mt-1">{errors.alternatePhone}</p>}
                   </div>
                   <div>
                     <label className="label">Address</label>
@@ -288,9 +319,10 @@ export function AddStudentModal({ onClose }: Props) {
                   )}
 
                   <div>
-                    <label className="label">Enrollment Date</label>
-                    <input type="date" className="input-field" value={form.enrollmentDate ?? ''}
+                    <label className="label">Enrollment Date <span className="text-red-500">*</span></label>
+                    <input type="date" className={cn('input-field', errors.enrollmentDate && 'border-red-400')} value={form.enrollmentDate ?? ''}
                       onChange={(e) => set('enrollmentDate', e.target.value)} />
+                    {errors.enrollmentDate && <p className="text-red-500 text-xs mt-1">{errors.enrollmentDate}</p>}
                   </div>
                 </div>
               )}

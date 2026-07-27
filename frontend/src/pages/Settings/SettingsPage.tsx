@@ -162,6 +162,136 @@ function ProfileSettings() {
         </div>
       </div>
 
+      <div className="mt-8 pt-8 border-t border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800 mb-4">Fee Settings</h3>
+        <div className="space-y-6">
+          <div className="space-y-1.5 max-w-sm">
+            <label className="text-sm font-medium text-slate-700">Monthly Fee Due Date (e.g. 10 for the 10th)</label>
+            <input 
+              type="number" min="1" max="28" name="feeDueDate" value={formData.feeDueDate || 10} 
+              onChange={(e) => setFormData({ ...formData, feeDueDate: parseInt(e.target.value) || 10 })}
+              className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-brand-500"
+            />
+          </div>
+          
+          <div>
+            <label className="text-sm font-medium text-slate-700 block mb-2">Late Fee Rules</label>
+            <div className="space-y-3">
+              {(formData.lateFeeRules || []).map((rule, idx) => (
+                <div key={idx} className="flex items-center gap-3 bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <span className="text-sm text-slate-600">Days</span>
+                  <input type="number" min="1" max="31"
+                    className={`w-20 px-2 py-1 border border-slate-300 rounded text-sm ${idx > 0 ? 'bg-slate-100 text-slate-500' : 'bg-white'}`}
+                    value={rule.startDaysLate || ''} 
+                    readOnly={idx > 0}
+                    onChange={e => {
+                      if (idx > 0) return;
+                      const rules = [...(formData.lateFeeRules || [])];
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val)) val = 0;
+                      if (val > 31) val = 31;
+                      rules[idx].startDaysLate = val;
+                      for (let i = idx + 1; i < rules.length; i++) {
+                        rules[i].startDaysLate = rules[i - 1].endDaysLate + 1;
+                        if (rules[i].endDaysLate < rules[i].startDaysLate) {
+                          rules[i].endDaysLate = rules[i].startDaysLate;
+                        }
+                      }
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }}
+                    onBlur={() => {
+                      if (idx > 0) return;
+                      const rules = [...(formData.lateFeeRules || [])];
+                      if (rules[idx].startDaysLate < 1) rules[idx].startDaysLate = 1;
+                      if (rules[idx].endDaysLate < rules[idx].startDaysLate) {
+                        rules[idx].endDaysLate = rules[idx].startDaysLate;
+                      }
+                      for (let i = idx + 1; i < rules.length; i++) {
+                        rules[i].startDaysLate = rules[i - 1].endDaysLate + 1;
+                        if (rules[i].endDaysLate < rules[i].startDaysLate) {
+                          rules[i].endDaysLate = rules[i].startDaysLate;
+                        }
+                      }
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }} 
+                  />
+                  <span className="text-sm text-slate-600">to</span>
+                  <input type="number" min={rule.startDaysLate} max="31" 
+                    className="w-20 px-2 py-1 border border-slate-300 rounded text-sm bg-white" 
+                    value={rule.endDaysLate || ''} 
+                    onChange={e => {
+                      const rules = [...(formData.lateFeeRules || [])];
+                      let val = parseInt(e.target.value);
+                      if (isNaN(val)) val = 0;
+                      if (val > 31) val = 31;
+                      rules[idx].endDaysLate = val;
+                      for (let i = idx + 1; i < rules.length; i++) {
+                        rules[i].startDaysLate = rules[i - 1].endDaysLate + 1;
+                        if (rules[i].endDaysLate < rules[i].startDaysLate) {
+                          rules[i].endDaysLate = rules[i].startDaysLate;
+                        }
+                      }
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }}
+                    onBlur={() => {
+                      const rules = [...(formData.lateFeeRules || [])];
+                      if (rules[idx].endDaysLate < rules[idx].startDaysLate) {
+                        rules[idx].endDaysLate = rules[idx].startDaysLate;
+                      }
+                      for (let i = idx + 1; i < rules.length; i++) {
+                        rules[i].startDaysLate = rules[i - 1].endDaysLate + 1;
+                        if (rules[i].endDaysLate < rules[i].startDaysLate) {
+                          rules[i].endDaysLate = rules[i].startDaysLate;
+                        }
+                      }
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }} 
+                  />
+                  <span className="text-sm text-slate-600 ml-4">Fee Amount (₹)</span>
+                  <input type="number" min="0" className="w-24 px-2 py-1 border border-slate-300 rounded text-sm bg-white" 
+                    value={rule.amount} 
+                    onChange={e => {
+                      const rules = [...(formData.lateFeeRules || [])];
+                      rules[idx].amount = Math.max(0, parseInt(e.target.value) || 0);
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }} 
+                  />
+                  <button 
+                    onClick={() => {
+                      const rules = [...(formData.lateFeeRules || [])];
+                      rules.splice(idx, 1);
+                      setFormData({ ...formData, lateFeeRules: rules });
+                    }}
+                    className="ml-auto text-red-500 hover:text-red-700 p-1 font-bold text-xl leading-none"
+                    title="Remove Rule"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => {
+                  const currentRules = formData.lateFeeRules || [];
+                  let nextStart = 1;
+                  if (currentRules.length > 0) {
+                    nextStart = currentRules[currentRules.length - 1].endDaysLate + 1;
+                  }
+                  if (nextStart > 31) nextStart = 31;
+                  setFormData({ 
+                    ...formData, 
+                    lateFeeRules: [...currentRules, { startDaysLate: nextStart, endDaysLate: nextStart, amount: 50 }] 
+                  });
+                }}
+                className="text-sm text-brand-600 hover:text-brand-700 font-medium"
+              >
+                + Add Late Fee Rule
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-3">Late fees are calculated automatically during fee collection based on these rules. The highest tier will apply if days late exceeds all defined ranges.</p>
+          </div>
+        </div>
+      </div>
+
       <div className="mt-8 flex justify-end">
         <button 
           onClick={() => mutation.mutate(formData)}

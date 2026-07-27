@@ -9,6 +9,12 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.schoolerp.modules.settings.dto.LateFeeRuleDto;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 
 @Service
@@ -17,13 +23,24 @@ public class SettingsService {
 
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final ObjectMapper objectMapper;
 
     public SchoolProfileDto getSchoolProfile() {
         UUID schoolId = TenantContext.getSchoolId();
         
         return jdbcTemplate.queryForObject(
-                "SELECT name, short_name, address_line1, address_line2, city, state, pincode, phone, email, website, logo_url FROM schools WHERE id = ?",
-                (rs, rowNum) -> SchoolProfileDto.builder()
+                "SELECT name, short_name, address_line1, address_line2, city, state, pincode, phone, email, website, logo_url, fee_due_date, late_fee_rules FROM schools WHERE id = ?",
+                (rs, rowNum) -> {
+                    List<LateFeeRuleDto> rules = new ArrayList<>();
+                    String rulesJson = rs.getString("late_fee_rules");
+                    if (rulesJson != null && !rulesJson.isEmpty()) {
+                        try {
+                            rules = objectMapper.readValue(rulesJson, new TypeReference<List<LateFeeRuleDto>>() {});
+                        } catch (JsonProcessingException e) {
+                            // ignore, return empty list
+                        }
+                    }
+                    return SchoolProfileDto.builder()
                         .name(rs.getString("name"))
                         .shortName(rs.getString("short_name"))
                         .addressLine1(rs.getString("address_line1"))
@@ -35,7 +52,10 @@ public class SettingsService {
                         .email(rs.getString("email"))
                         .website(rs.getString("website"))
                         .logoUrl(rs.getString("logo_url"))
-                        .build(),
+                        .feeDueDate(rs.getObject("fee_due_date") != null ? rs.getInt("fee_due_date") : null)
+                        .lateFeeRules(rules)
+                        .build();
+                },
                 schoolId
         );
     }
@@ -43,16 +63,25 @@ public class SettingsService {
     public SchoolProfileDto updateSchoolProfile(SchoolProfileDto req) {
         UUID schoolId = TenantContext.getSchoolId();
         
+        String rulesJson = "[]";
+        try {
+            if (req.getLateFeeRules() != null) {
+                rulesJson = objectMapper.writeValueAsString(req.getLateFeeRules());
+            }
+        } catch (JsonProcessingException e) {
+            // ignore
+        }
+        
         jdbcTemplate.update("""
                 UPDATE schools 
                 SET name = ?, short_name = ?, address_line1 = ?, address_line2 = ?, 
                     city = ?, state = ?, pincode = ?, phone = ?, email = ?, 
-                    website = ?, logo_url = ?, updated_at = NOW()
+                    website = ?, logo_url = ?, fee_due_date = ?, late_fee_rules = ?::jsonb, updated_at = NOW()
                 WHERE id = ?
                 """,
                 req.getName(), req.getShortName(), req.getAddressLine1(), req.getAddressLine2(),
                 req.getCity(), req.getState(), req.getPincode(), req.getPhone(), req.getEmail(),
-                req.getWebsite(), req.getLogoUrl(), schoolId
+                req.getWebsite(), req.getLogoUrl(), req.getFeeDueDate(), rulesJson, schoolId
         );
         
         return getSchoolProfile();

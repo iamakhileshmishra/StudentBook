@@ -4,6 +4,8 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @Builder
 public class SchoolProfileDto {
@@ -20,4 +22,7 @@ public class SchoolProfileDto {
     private String email;
     private String website;
     private String logoUrl;
+    
+    private Integer feeDueDate;
+    private List<LateFeeRuleDto> lateFeeRules;
 }

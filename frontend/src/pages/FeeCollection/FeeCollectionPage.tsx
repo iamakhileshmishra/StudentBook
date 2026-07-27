@@ -255,7 +255,7 @@ export const FeeCollectionPage = () => {
                       min="0"
                       className="block w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
                       value={lateFee}
-                      onChange={(e) => setLateFee(Number(e.target.value) || 0)}
+                      onChange={(e) => setLateFee(Math.max(0, Number(e.target.value) || 0))}
                     />
                   </div>
                 </div>
@@ -272,7 +272,7 @@ export const FeeCollectionPage = () => {
                         min="0"
                         className="block w-full pl-7 pr-3 py-2 border border-emerald-300 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm bg-emerald-50/50 text-emerald-700 font-medium"
                         value={concession}
-                        onChange={(e) => setConcession(Number(e.target.value) || 0)}
+                        onChange={(e) => setConcession(Math.max(0, Number(e.target.value) || 0))}
                       />
                     </div>
                   </div>

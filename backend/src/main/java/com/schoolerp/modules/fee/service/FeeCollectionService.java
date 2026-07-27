@@ -76,8 +76,54 @@ public class FeeCollectionService {
         }
 
         BigDecimal expectedLateFee = BigDecimal.ZERO;
-        if (LocalDate.now().getDayOfMonth() > 10) {
-            expectedLateFee = new BigDecimal("50.00");
+        
+        Integer dueDay = null;
+        String rulesJson = null;
+        try {
+            var schoolRow = jdbcTemplate.queryForMap(
+                "SELECT fee_due_date, late_fee_rules FROM schools WHERE id = ?", schoolId);
+            dueDay = (Integer) schoolRow.get("fee_due_date");
+            rulesJson = (String) schoolRow.get("late_fee_rules");
+        } catch (Exception e) {
+            // ignore
+        }
+        
+        if (dueDay == null) dueDay = 10;
+        
+        int targetDay = Math.min(dueDay, java.time.YearMonth.of(year, month).lengthOfMonth());
+        LocalDate dueDate = LocalDate.of(year, month, targetDay);
+        LocalDate today = LocalDate.now();
+        
+        if (today.isAfter(dueDate)) {
+            long daysLate = java.time.temporal.ChronoUnit.DAYS.between(dueDate, today);
+            if (rulesJson != null && !rulesJson.isEmpty() && !rulesJson.equals("[]")) {
+                try {
+                    com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                    List<com.schoolerp.modules.settings.dto.LateFeeRuleDto> rules = mapper.readValue(
+                        rulesJson, new com.fasterxml.jackson.core.type.TypeReference<List<com.schoolerp.modules.settings.dto.LateFeeRuleDto>>() {}
+                    );
+                    
+                    BigDecimal applicableFee = BigDecimal.ZERO;
+                    com.schoolerp.modules.settings.dto.LateFeeRuleDto highestRule = null;
+                    
+                    for (com.schoolerp.modules.settings.dto.LateFeeRuleDto rule : rules) {
+                        if (highestRule == null || rule.getEndDaysLate() > highestRule.getEndDaysLate()) {
+                            highestRule = rule;
+                        }
+                        if (daysLate >= rule.getStartDaysLate() && daysLate <= rule.getEndDaysLate()) {
+                            applicableFee = rule.getAmount();
+                        }
+                    }
+                    
+                    // If days late exceeds the highest tier, apply the highest tier
+                    if (applicableFee.compareTo(BigDecimal.ZERO) == 0 && highestRule != null && daysLate > highestRule.getEndDaysLate()) {
+                        applicableFee = highestRule.getAmount();
+                    }
+                    expectedLateFee = applicableFee;
+                } catch (Exception e) {
+                    // ignore
+                }
+            }
         }
 
         BigDecimal expectedConcession = student.getConcessionAmount() != null ? student.getConcessionAmount() : BigDecimal.ZERO;

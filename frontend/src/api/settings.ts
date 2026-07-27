@@ -1,17 +1,25 @@
 import api from './axios'
 
+export interface LateFeeRule {
+  startDaysLate: number
+  endDaysLate: number
+  amount: number
+}
+
 export interface SchoolProfileDto {
   name: string
-  shortName: string
-  addressLine1: string
+  shortName?: string
+  addressLine1?: string
   addressLine2?: string
-  city: string
-  state: string
-  pincode: string
-  phone: string
-  email: string
+  city?: string
+  state?: string
+  pincode?: string
+  phone?: string
+  email?: string
   website?: string
   logoUrl?: string
+  feeDueDate?: number
+  lateFeeRules?: LateFeeRule[]
 }
 
 export interface ChangePasswordRequest {

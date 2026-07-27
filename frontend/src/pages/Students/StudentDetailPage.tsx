@@ -119,7 +119,6 @@ export function StudentDetailPage() {
             {student.enrollmentDate && (
               <InfoRow label="Enrollment Date" value={formatDate(student.enrollmentDate)} />
             )}
-            <InfoRow label="Member Since" value={formatDate(student.createdAt)} />
           </div>
         </div>
       </div>
