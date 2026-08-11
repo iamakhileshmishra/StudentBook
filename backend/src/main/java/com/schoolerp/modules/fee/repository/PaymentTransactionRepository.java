@@ -18,6 +18,8 @@ import java.time.LocalDate;
 public interface PaymentTransactionRepository extends JpaRepository<PaymentTransaction, UUID> {
     boolean existsByStudentIdAndCollectionMonthAndCollectionYearAndStatus(UUID studentId, int collectionMonth, int collectionYear, String status);
 
+    Optional<PaymentTransaction> findFirstByStudentIdAndCollectionMonthAndCollectionYearAndStatusOrderByConfirmedAtDesc(UUID studentId, int collectionMonth, int collectionYear, String status);
+
     @Query("SELECT COALESCE(SUM(p.amountPaid), 0) FROM PaymentTransaction p WHERE p.schoolId = :schoolId AND p.status = 'CONFIRMED' AND p.paymentDate = :date")
     BigDecimal getTotalCollectionToday(UUID schoolId, LocalDate date);
 

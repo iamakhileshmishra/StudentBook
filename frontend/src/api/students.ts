@@ -52,6 +52,7 @@ export interface StudentDetailDto {
   sectionName?: string
   academicYearName?: string
   enrollmentDate?: string
+  previousDues?: number
   createdAt: string
 }
 

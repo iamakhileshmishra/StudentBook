@@ -40,7 +40,7 @@ export function Sidebar() {
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
           <div className="min-w-0">
-            <p className="text-white font-semibold text-sm leading-tight truncate">
+            <p className="text-white font-semibold text-sm leading-tight line-clamp-2">
               {user?.schoolName ?? 'School ERP'}
             </p>
             <p className="text-slate-400 text-xs mt-0.5">Fee Management</p>
@@ -70,21 +70,8 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      {/* User info + Logout */}
+      {/* Logout */}
       <div className="border-t border-slate-700/50 p-3">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center flex-shrink-0">
-            <span className="text-white text-xs font-bold">
-              {user?.fullName?.charAt(0).toUpperCase() ?? 'A'}
-            </span>
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white text-sm font-medium truncate">{user?.fullName}</p>
-            <p className="text-slate-400 text-xs capitalize">
-              {user?.role?.replace('_', ' ').toLowerCase()}
-            </p>
-          </div>
-        </div>
         <button
           onClick={handleLogout}
           className="sidebar-nav-item w-full mt-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"

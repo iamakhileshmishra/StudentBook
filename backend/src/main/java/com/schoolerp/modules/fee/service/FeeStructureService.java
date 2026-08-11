@@ -73,14 +73,21 @@ public class FeeStructureService {
                     .findBySchoolIdAndAcademicYearIdAndClassIdOrderByFeeCategoryId(
                             schoolId, yearId, cls.getId());
 
-            List<FeeStructureRowDto> rowDtos = rows.stream()
-                    .map(r -> FeeStructureRowDto.builder()
-                            .structureId(r.getId())
-                            .feeCategoryId(r.getFeeCategoryId())
-                            .categoryName(categoryNames.getOrDefault(r.getFeeCategoryId(), "Unknown"))
-                            .displayOrder(categoryOrders.getOrDefault(r.getFeeCategoryId(), 99))
-                            .defaultAmount(r.getDefaultAmount())
-                            .build())
+            List<FeeStructureRowDto> rowDtos = categories.stream()
+                    .map(cat -> {
+                        MonthlyFeeStructure existing = rows.stream()
+                                .filter(r -> r.getFeeCategoryId().equals(cat.getId()))
+                                .findFirst()
+                                .orElse(null);
+                        
+                        return FeeStructureRowDto.builder()
+                                .structureId(existing != null ? existing.getId() : null)
+                                .feeCategoryId(cat.getId())
+                                .categoryName(cat.getName())
+                                .displayOrder(cat.getDisplayOrder())
+                                .defaultAmount(existing != null ? existing.getDefaultAmount() : BigDecimal.ZERO)
+                                .build();
+                    })
                     .sorted((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()))
                     .toList();
 
@@ -119,14 +126,21 @@ public class FeeStructureService {
                 .findBySchoolIdAndAcademicYearIdAndClassIdOrderByFeeCategoryId(
                         schoolId, yearId, classId);
 
-        List<FeeStructureRowDto> rowDtos = rows.stream()
-                .map(r -> FeeStructureRowDto.builder()
-                        .structureId(r.getId())
-                        .feeCategoryId(r.getFeeCategoryId())
-                        .categoryName(categoryNames.getOrDefault(r.getFeeCategoryId(), "Unknown"))
-                        .displayOrder(categoryOrders.getOrDefault(r.getFeeCategoryId(), 99))
-                        .defaultAmount(r.getDefaultAmount())
-                        .build())
+        List<FeeStructureRowDto> rowDtos = categories.stream()
+                .map(cat -> {
+                    MonthlyFeeStructure existing = rows.stream()
+                            .filter(r -> r.getFeeCategoryId().equals(cat.getId()))
+                            .findFirst()
+                            .orElse(null);
+                    
+                    return FeeStructureRowDto.builder()
+                            .structureId(existing != null ? existing.getId() : null)
+                            .feeCategoryId(cat.getId())
+                            .categoryName(cat.getName())
+                            .displayOrder(cat.getDisplayOrder())
+                            .defaultAmount(existing != null ? existing.getDefaultAmount() : BigDecimal.ZERO)
+                            .build();
+                })
                 .sorted((a, b) -> Integer.compare(a.getDisplayOrder(), b.getDisplayOrder()))
                 .toList();
 

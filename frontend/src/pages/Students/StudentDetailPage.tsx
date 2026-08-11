@@ -114,6 +114,9 @@ export function StudentDetailPage() {
           <div className="card-body space-y-3">
             <InfoRow label="Monthly Concession"
               value={student.concessionAmount > 0 ? formatCurrency(student.concessionAmount) : 'None'} />
+            {(student.previousDues && student.previousDues > 0) ? (
+              <InfoRow label="Previous Year Arrears" value={formatCurrency(student.previousDues)} />
+            ) : null}
             {student.concessionNote && <InfoRow label="Concession Note" value={student.concessionNote} />}
             <InfoRow label="Staff Child" value={student.staffChild ? 'Yes' : 'No'} />
             {student.enrollmentDate && (

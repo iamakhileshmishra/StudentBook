@@ -11,6 +11,9 @@ export interface DuesResponse {
   expectedLateFee: number
   expectedConcession: number
   lineItems: FeeItemDto[]
+  alreadyPaid?: boolean
+  paidTransactionId?: string
+  paidReceiptNumber?: string
 }
 
 export interface CollectFeeRequest {

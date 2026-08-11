@@ -46,4 +46,5 @@ public class StudentDetailDto {
     private String sectionName;
     private String academicYearName;
     private LocalDate enrollmentDate;
+    private BigDecimal previousDues;
 }

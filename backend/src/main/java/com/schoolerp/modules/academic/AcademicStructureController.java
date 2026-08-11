@@ -2,6 +2,8 @@ package com.schoolerp.modules.academic;
 
 import com.schoolerp.modules.academic.dto.AcademicYearDto;
 import com.schoolerp.modules.academic.dto.ClassDto;
+import com.schoolerp.modules.academic.dto.CreateClassRequest;
+import com.schoolerp.modules.academic.dto.CreateSectionRequest;
 import com.schoolerp.modules.academic.dto.SectionDto;
 import com.schoolerp.modules.academic.service.AcademicStructureService;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +38,37 @@ public class AcademicStructureController {
     @GetMapping("/sections")
     public ResponseEntity<List<SectionDto>> getSections(@RequestParam UUID classId) {
         return ResponseEntity.ok(service.getSectionsByClass(classId));
+    }
+
+    @PostMapping("/classes")
+    public ResponseEntity<ClassDto> createClass(@RequestBody CreateClassRequest request) {
+        return ResponseEntity.ok(service.createClass(request));
+    }
+
+    @PutMapping("/classes/{id}")
+    public ResponseEntity<ClassDto> updateClass(@PathVariable UUID id, @RequestBody CreateClassRequest request) {
+        return ResponseEntity.ok(service.updateClass(id, request));
+    }
+
+    @DeleteMapping("/classes/{id}")
+    public ResponseEntity<Void> deleteClass(@PathVariable UUID id) {
+        service.deleteClass(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/classes/{classId}/sections")
+    public ResponseEntity<SectionDto> createSection(@PathVariable UUID classId, @RequestBody CreateSectionRequest request) {
+        return ResponseEntity.ok(service.createSection(classId, request));
+    }
+
+    @PutMapping("/sections/{id}")
+    public ResponseEntity<SectionDto> updateSection(@PathVariable UUID id, @RequestBody CreateSectionRequest request) {
+        return ResponseEntity.ok(service.updateSection(id, request));
+    }
+
+    @DeleteMapping("/sections/{id}")
+    public ResponseEntity<Void> deleteSection(@PathVariable UUID id) {
+        service.deleteSection(id);
+        return ResponseEntity.ok().build();
     }
 }

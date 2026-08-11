@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Settings, Shield, Database, School, Save } from 'lucide-react'
-import { settingsApi, SchoolProfileDto, ChangePasswordRequest } from '@/api/settings'
+import { Settings, Shield, Database, School, Save, Calendar } from 'lucide-react'
+import { settingsApi, SchoolProfileDto, ChangePasswordRequest, AcademicYearDto } from '@/api/settings'
+import { academicApi } from '@/api/academic'
+import { AcademicYearPromotionModal } from './components/AcademicYearPromotionModal'
+import { ClassSettings } from './components/ClassSettings'
+import { BookOpen } from 'lucide-react'
 
 export function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'profile' | 'security' | 'system'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'classes' | 'security' | 'system'>('profile')
 
   return (
     <div className="p-8 max-w-5xl mx-auto animate-fade-in">
@@ -28,6 +32,12 @@ export function SettingsPage() {
             label="School Profile" 
           />
           <TabButton 
+            active={activeTab === 'classes'} 
+            onClick={() => setActiveTab('classes')} 
+            icon={<BookOpen className="w-4 h-4" />} 
+            label="Classes & Sections" 
+          />
+          <TabButton 
             active={activeTab === 'security'} 
             onClick={() => setActiveTab('security')} 
             icon={<Shield className="w-4 h-4" />} 
@@ -44,6 +54,7 @@ export function SettingsPage() {
         {/* Content Area */}
         <div className="flex-1 min-w-0">
           {activeTab === 'profile' && <ProfileSettings />}
+          {activeTab === 'classes' && <ClassSettings />}
           {activeTab === 'security' && <SecuritySettings />}
           {activeTab === 'system' && <SystemSettings />}
         </div>
@@ -384,25 +395,168 @@ function SecuritySettings() {
 
 
 function SystemSettings() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: currentYear, isLoading } = useQuery({
+    queryKey: ['currentAcademicYear'],
+    queryFn: settingsApi.getCurrentAcademicYear
+  });
+
+  const [dates, setDates] = useState({ start: '', end: '' });
+
+  useEffect(() => {
+    if (currentYear) {
+      setDates({ start: currentYear.startDate, end: currentYear.endDate });
+    }
+  }, [currentYear]);
+
+  const updateYearMutation = useMutation({
+    mutationFn: (data: AcademicYearDto) => settingsApi.updateCurrentAcademicYear(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['currentAcademicYear'] });
+      alert('Academic Year dates updated successfully!');
+    },
+    onError: () => {
+      alert('Failed to update Academic Year dates.');
+    }
+  });
+
+  const [selectedBackupYear, setSelectedBackupYear] = useState<string>('')
+
+  const { data: academicYears } = useQuery({
+    queryKey: ['academicYears'],
+    queryFn: academicApi.getAcademicYears,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const handleBackup = async () => {
+    setIsGenerating(true);
+    try {
+      const { blob, filename } = await settingsApi.downloadBackup(selectedBackupYear || undefined);
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Backup failed", error);
+      alert("Failed to generate backup.");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleUpdateDates = () => {
+    if (!currentYear) return;
+    updateYearMutation.mutate({
+      ...currentYear,
+      startDate: dates.start,
+      endDate: dates.end
+    });
+  };
+
   return (
     <div className="space-y-6">
-      <div className="bg-white  rounded-2xl shadow-sm border border-slate-200  p-6">
-        <h2 className="text-lg font-bold text-slate-800  mb-2">Database Backup</h2>
-        <p className="text-sm text-slate-500  mb-4">Request a manual backup of your school's data. Automated backups run nightly.</p>
-        <button className="px-5 py-2.5 bg-slate-100  text-slate-700  hover:bg-slate-200 :bg-slate-700 font-medium rounded-lg transition-colors border border-slate-200 ">
-          Request Manual Backup
-        </button>
-        <p className="text-xs text-amber-600  mt-3 font-medium">Note: Feature will be enabled upon production deployment.</p>
+      
+      {/* Academic Year Config */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Calendar className="w-5 h-5 text-slate-500" />
+          <h2 className="text-lg font-bold text-slate-800">Current Academic Year ({currentYear?.name})</h2>
+        </div>
+        <p className="text-sm text-slate-500 mb-6">
+          Set the operational dates for the current academic year. These dates are used to correctly calculate fee arrears when onboarding mid-year.
+        </p>
+        
+        {isLoading ? (
+          <div className="animate-pulse h-12 bg-slate-100 rounded-lg w-full"></div>
+        ) : (
+          <div className="flex flex-col sm:flex-row gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
+              <input
+                type="date"
+                value={dates.start}
+                onChange={(e) => setDates({ ...dates, start: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+              <input
+                type="date"
+                value={dates.end}
+                onChange={(e) => setDates({ ...dates, end: e.target.value })}
+                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              />
+            </div>
+            <button
+              onClick={handleUpdateDates}
+              disabled={updateYearMutation.isPending || (dates.start === currentYear?.startDate && dates.end === currentYear?.endDate)}
+              className="px-6 py-2 bg-slate-900 text-white font-medium rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center gap-2 h-10"
+            >
+              {updateYearMutation.isPending ? 'Saving...' : 'Save Dates'}
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="bg-white  rounded-2xl shadow-sm border border-slate-200  p-6">
-        <h2 className="text-lg font-bold text-slate-800  mb-2">Academic Year Management</h2>
-        <p className="text-sm text-slate-500  mb-4">Close the current academic year and promote students to the next class.</p>
-        <button className="px-5 py-2.5 bg-red-50  text-red-600  font-medium rounded-lg transition-colors border border-red-200 ">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-2">Database Backup</h2>
+        <p className="text-sm text-slate-500 mb-4">Request a manual backup of your school's data. Automated backups run nightly.</p>
+        
+        <div className="flex items-center gap-4 mb-4 max-w-sm">
+          <div className="flex-1">
+            <label className="block text-sm font-medium text-slate-700 mb-1">Academic Year</label>
+            <select
+              value={selectedBackupYear}
+              onChange={(e) => setSelectedBackupYear(e.target.value)}
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:border-brand-500"
+            >
+              <option value="">Current Year (Default)</option>
+              {academicYears?.map(y => (
+                <option key={y.id} value={y.id}>{y.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button 
+          onClick={handleBackup}
+          disabled={isGenerating}
+          className="px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed font-medium rounded-lg transition-colors border border-slate-200 flex items-center gap-2"
+        >
+          {isGenerating ? (
+            <>
+              <div className="w-4 h-4 border-2 border-slate-700 border-t-transparent rounded-full animate-spin"></div>
+              Generating Backup...
+            </>
+          ) : (
+            'Request Manual Backup'
+          )}
+        </button>
+      </div>
+
+      <div className="bg-white  rounded-2xl shadow-sm border border-slate-200  p-6 border-red-100">
+        <h2 className="text-lg font-bold text-red-700 mb-2">Academic Year Management</h2>
+        <p className="text-sm text-red-600/80 mb-4">Close the current academic year and promote students to the next class.</p>
+        <button 
+          onClick={() => setIsPromoModalOpen(true)}
+          className="px-5 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 font-medium rounded-lg transition-colors border border-red-200 "
+        >
           Close Academic Year
         </button>
-        <p className="text-xs text-slate-400 mt-3">Warning: This action requires SUPER_ADMIN privileges and is currently under development.</p>
       </div>
+
+      <AcademicYearPromotionModal 
+        isOpen={isPromoModalOpen} 
+        onClose={() => setIsPromoModalOpen(false)} 
+      />
     </div>
   )
 }

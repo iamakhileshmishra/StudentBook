@@ -23,6 +23,7 @@ public class StudentSummaryDto {
     private String status;
     private boolean staffChild;
     private BigDecimal concessionAmount;
+    private BigDecimal pendingDues;
     private String className;
     private String sectionName;
     private UUID classId;

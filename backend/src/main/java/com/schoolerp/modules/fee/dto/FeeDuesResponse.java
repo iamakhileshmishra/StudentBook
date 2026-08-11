@@ -13,6 +13,9 @@ public class FeeDuesResponse {
     private BigDecimal expectedLateFee;
     private BigDecimal expectedConcession;
     private List<LineItem> lineItems;
+    private boolean alreadyPaid;
+    private UUID paidTransactionId;
+    private String paidReceiptNumber;
 
     @Data
     @Builder

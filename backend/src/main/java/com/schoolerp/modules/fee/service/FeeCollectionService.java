@@ -46,9 +46,14 @@ public class FeeCollectionService {
                 .filter(s -> s.getSchoolId().equals(schoolId))
                 .orElseThrow(() -> new IllegalArgumentException("Student not found"));
 
-        if (paymentTransactionRepository.existsByStudentIdAndCollectionMonthAndCollectionYearAndStatus(
-                studentId, month, year, "CONFIRMED")) {
-            throw new IllegalStateException("Payment already collected for this month and year");
+        var existingPayment = paymentTransactionRepository.findFirstByStudentIdAndCollectionMonthAndCollectionYearAndStatusOrderByConfirmedAtDesc(
+                studentId, month, year, "CONFIRMED");
+        if (existingPayment.isPresent()) {
+            return FeeDuesResponse.builder()
+                    .alreadyPaid(true)
+                    .paidTransactionId(existingPayment.get().getId())
+                    .paidReceiptNumber(existingPayment.get().getReceiptNumber())
+                    .build();
         }
 
         UUID academicYearId = getCurrentAcademicYearId(schoolId);
@@ -73,6 +78,15 @@ public class FeeCollectionService {
 
         for (FeeDuesResponse.LineItem item : lineItems) {
             subtotal = subtotal.add(item.getAmount());
+        }
+
+        if (enrollment.getPreviousDues() != null && enrollment.getPreviousDues().compareTo(BigDecimal.ZERO) > 0) {
+            subtotal = subtotal.add(enrollment.getPreviousDues());
+            lineItems.add(FeeDuesResponse.LineItem.builder()
+                    .feeCategoryId(getOrCreateArrearsCategoryId(schoolId))
+                    .feeCategoryName("Previous Year Arrears")
+                    .amount(enrollment.getPreviousDues())
+                    .build());
         }
 
         BigDecimal expectedLateFee = BigDecimal.ZERO;
@@ -163,11 +177,12 @@ public class FeeCollectionService {
         }
         if (schoolShortName == null) schoolShortName = "SCH";
 
-        String receiptNumber = String.format("%s-%d-%s-%s",
+        String receiptNumber = String.format("%s-%d-%s-%s-%s",
                 schoolShortName,
                 LocalDate.now().getYear(),
                 LocalDate.now().format(DateTimeFormatter.ofPattern("MMdd")),
-                student.getAdmissionNumber()
+                student.getAdmissionNumber(),
+                UUID.randomUUID().toString().substring(0, 4).toUpperCase()
         );
 
         List<MonthlyFeeStructure> structures = monthlyFeeStructureRepository
@@ -176,6 +191,11 @@ public class FeeCollectionService {
         BigDecimal subtotal = BigDecimal.ZERO;
         for (MonthlyFeeStructure s : structures) {
             subtotal = subtotal.add(s.getDefaultAmount());
+        }
+
+        BigDecimal previousDues = enrollment.getPreviousDues() != null ? enrollment.getPreviousDues() : BigDecimal.ZERO;
+        if (previousDues.compareTo(BigDecimal.ZERO) > 0) {
+            subtotal = subtotal.add(previousDues);
         }
 
         BigDecimal grandTotal = subtotal.subtract(request.getConcessionAmount()).add(request.getLateFee());
@@ -218,6 +238,19 @@ public class FeeCollectionService {
 
         paymentLineItemRepository.saveAll(lineItems);
 
+        if (previousDues.compareTo(BigDecimal.ZERO) > 0) {
+            PaymentLineItem arrearsItem = PaymentLineItem.builder()
+                    .schoolId(schoolId)
+                    .transactionId(savedTransaction.getId())
+                    .feeCategoryId(getOrCreateArrearsCategoryId(schoolId))
+                    .amountCharged(previousDues)
+                    .build();
+            paymentLineItemRepository.save(arrearsItem);
+
+            enrollment.setPreviousDues(BigDecimal.ZERO);
+            studentEnrollmentRepository.save(enrollment);
+        }
+
         return savedTransaction;
     }
 
@@ -231,5 +264,27 @@ public class FeeCollectionService {
             return activeYears.get(0);
         }
         throw new IllegalStateException("No active academic year found");
+    }
+
+    private UUID getOrCreateArrearsCategoryId(UUID schoolId) {
+        try {
+            List<UUID> ids = jdbcTemplate.query(
+                "SELECT id FROM fee_categories WHERE school_id = ? AND name = 'Previous Year Arrears'",
+                (rs, rowNum) -> rs.getObject("id", UUID.class),
+                schoolId
+            );
+            if (!ids.isEmpty()) {
+                return ids.get(0);
+            }
+            
+            UUID newId = UUID.randomUUID();
+            jdbcTemplate.update(
+                "INSERT INTO fee_categories (id, school_id, name, display_order, is_active, created_at) VALUES (?, ?, 'Previous Year Arrears', 999, true, NOW())",
+                newId, schoolId
+            );
+            return newId;
+        } catch (Exception e) {
+            return UUID.fromString("00000000-0000-0000-0000-000000000001");
+        }
     }
 }

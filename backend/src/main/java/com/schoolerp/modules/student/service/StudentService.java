@@ -160,7 +160,8 @@ public class StudentService {
             builder.enrollmentId(en.getId())
                    .classId(en.getClassId())
                    .sectionId(en.getSectionId())
-                   .enrollmentDate(en.getEnrollmentDate());
+                   .enrollmentDate(en.getEnrollmentDate())
+                   .previousDues(en.getPreviousDues());
 
             classRepository.findById(en.getClassId())
                     .ifPresent(c -> builder.className(c.getName()));

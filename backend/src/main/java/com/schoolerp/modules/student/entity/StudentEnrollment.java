@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 @Entity
@@ -47,4 +48,7 @@ public class StudentEnrollment {
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
+    @Column(name = "previous_dues", nullable = false)
+    private BigDecimal previousDues = BigDecimal.ZERO;
 }
