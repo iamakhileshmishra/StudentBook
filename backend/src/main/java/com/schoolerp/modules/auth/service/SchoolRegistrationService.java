@@ -54,6 +54,7 @@ public class SchoolRegistrationService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final MailService mailService;
+    private final UnverifiedSchoolCleanup unverifiedSchoolCleanup;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -69,10 +70,14 @@ public class SchoolRegistrationService {
             shortName = initials.length() >= 2 ? initials.substring(0, Math.min(10, initials.length())) : null;
         }
 
+        // An old sign-up that was never activated doesn't block the address forever (SEC-09)
+        unverifiedSchoolCleanup.releaseEmailIfStale(email);
+
         Integer existing = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM schools WHERE LOWER(email) = ?", Integer.class, email);
         if (existing != null && existing > 0) {
-            throw new BusinessException("A school is already registered with this email address.");
+            throw new BusinessException("A school is already registered with this email address. "
+                    + "If you registered recently, check your inbox for the login details.");
         }
 
         UUID schoolId = jdbcTemplate.queryForObject("""

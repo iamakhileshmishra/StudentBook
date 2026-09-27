@@ -8,6 +8,12 @@ import { ClassSettings } from './components/ClassSettings'
 import { BookOpen } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 
+// Server validation message (field error first), for alerts
+const serverMessage = (err: any, fallback: string) => {
+  const data = err?.response?.data
+  return (data?.fieldErrors && Object.values(data.fieldErrors)[0]) || data?.message || fallback
+}
+
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'classes' | 'security' | 'system'>('profile')
 
@@ -100,8 +106,8 @@ function ProfileSettings() {
       queryClient.setQueryData(['school-profile'], data)
       alert('Profile updated successfully!')
     },
-    onError: () => {
-      alert('Failed to update profile')
+    onError: (err: any) => {
+      alert(serverMessage(err, 'Failed to update profile'))
     }
   })
 
@@ -534,8 +540,8 @@ function SystemSettings() {
       queryClient.invalidateQueries({ queryKey: ['currentAcademicYear'] });
       alert('Academic Year dates updated successfully!');
     },
-    onError: () => {
-      alert('Failed to update Academic Year dates.');
+    onError: (err: any) => {
+      alert(serverMessage(err, 'Failed to update Academic Year dates.'));
     }
   });
 

@@ -46,7 +46,8 @@ export function EditStudentModal({ student, onClose }: Props) {
       onClose()
     },
     onError: (err: any) => {
-      const msg = err?.response?.data?.message ?? 'Failed to update student'
+      const data = err?.response?.data
+      const msg = (data?.fieldErrors && Object.values(data.fieldErrors)[0]) || data?.message || 'Failed to update student'
       setErrors({ submit: msg })
     },
   })

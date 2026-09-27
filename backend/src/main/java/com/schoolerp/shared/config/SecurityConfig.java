@@ -1,6 +1,8 @@
 package com.schoolerp.shared.config;
 
 import com.schoolerp.shared.security.JwtAuthFilter;
+import com.schoolerp.shared.security.RateLimitFilter;
+import org.springframework.http.HttpMethod;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -26,7 +28,12 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    /** Roles from users.role (SUPER_ADMIN | SCHOOL_ADMIN | FEE_COLLECTOR). */
+    private static final String[] ADMINS = {"SCHOOL_ADMIN", "SUPER_ADMIN"};
+    private static final String[] ALL_STAFF = {"SCHOOL_ADMIN", "SUPER_ADMIN", "FEE_COLLECTOR"};
+
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitFilter rateLimitFilter;
 
     @Value("${app.cors.allowed-origins}")
     private String allowedOrigins;
@@ -50,7 +57,25 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
-                        .anyRequest().authenticated()
+
+                        // ── Role-based access (test&bug.md SEC-05) ──────────────────
+                        // Every signed-in user may manage their own password
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/settings/change-password",
+                                "/api/settings/change-password/request-otp").authenticated()
+                        // Day-to-day fee desk work: read school data, collect fees
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/dashboard/**",
+                                "/api/students", "/api/students/*",
+                                "/api/structure/**",
+                                "/api/fee-structure", "/api/fee-structure/**",
+                                "/api/fees/collection/dues",
+                                "/api/payments/**",
+                                "/api/settings/school",
+                                "/api/settings/academic-years/current").hasAnyRole(ALL_STAFF)
+                        .requestMatchers(HttpMethod.POST, "/api/fees/collection").hasAnyRole(ALL_STAFF)
+                        // Everything else (setup, student changes, promotion, backup) is admin-only
+                        .anyRequest().hasAnyRole(ADMINS)
                 )
                 // JSON 401/403 (the default for stateless APIs is a bare 403 for both), so the
                 // frontend can tell "session expired → refresh" apart from "not allowed"
@@ -60,6 +85,7 @@ public class SecurityConfig {
                         .accessDeniedHandler((req, res, e) -> writeJson(res, 403,
                                 "Forbidden", "You do not have permission to perform this action"))
                 )
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

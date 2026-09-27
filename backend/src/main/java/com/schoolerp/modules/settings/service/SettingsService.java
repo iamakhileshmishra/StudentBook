@@ -79,6 +79,18 @@ public class SettingsService {
 
     public SchoolProfileDto updateSchoolProfile(SchoolProfileDto req) {
         UUID schoolId = TenantContext.getSchoolId();
+        validateLateFeeRules(req.getLateFeeRules());
+
+        // Friendly error instead of a unique-index 500 when another school uses the email (BUG-16)
+        String email = req.getEmail().trim().toLowerCase();
+        Integer taken = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM schools WHERE LOWER(email) = ? AND id <> ?", Integer.class, email, schoolId);
+        if (taken != null && taken > 0) {
+            throw new BusinessException("Another school is already registered with this email address.");
+        }
+        req.setEmail(email);
+        req.setShortName(req.getShortName() == null || req.getShortName().isBlank()
+                ? null : req.getShortName().trim().toUpperCase());
         
         String rulesJson = "[]";
         try {
@@ -198,6 +210,22 @@ public class SettingsService {
         }
     }
 
+    /** Rules must be well-formed and must not overlap (BUG-16). */
+    private static void validateLateFeeRules(List<LateFeeRuleDto> rules) {
+        if (rules == null || rules.isEmpty()) return;
+        List<LateFeeRuleDto> sorted = new ArrayList<>(rules);
+        sorted.sort(java.util.Comparator.comparingInt(LateFeeRuleDto::getStartDaysLate));
+        for (int i = 0; i < sorted.size(); i++) {
+            LateFeeRuleDto r = sorted.get(i);
+            if (r.getEndDaysLate() < r.getStartDaysLate()) {
+                throw new BusinessException("Each late fee rule must end on or after the day it starts.");
+            }
+            if (i > 0 && r.getStartDaysLate() <= sorted.get(i - 1).getEndDaysLate()) {
+                throw new BusinessException("Late fee rules must not overlap.");
+            }
+        }
+    }
+
     public AcademicYearDto getCurrentAcademicYear() {
         UUID schoolId = TenantContext.getSchoolId();
         return jdbcTemplate.queryForObject(
@@ -217,6 +245,23 @@ public class SettingsService {
 
     public AcademicYearDto updateCurrentAcademicYear(AcademicYearDto req) {
         UUID schoolId = TenantContext.getSchoolId();
+        // BUG-16: validate before the DB check constraint turns it into a 500
+        if (req.getId() == null || req.getStartDate() == null || req.getEndDate() == null) {
+            throw new BusinessException("Start and end dates are required.");
+        }
+        if (!req.getEndDate().isAfter(req.getStartDate())) {
+            throw new BusinessException("The academic year must end after it starts.");
+        }
+        if (req.getStartDate().plusMonths(18).isBefore(req.getEndDate())) {
+            throw new BusinessException("An academic year can be at most 18 months long.");
+        }
+        Integer overlaps = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM academic_years
+                WHERE school_id = ? AND id <> ? AND start_date <= ? AND end_date >= ?
+                """, Integer.class, schoolId, req.getId(), req.getEndDate(), req.getStartDate());
+        if (overlaps != null && overlaps > 0) {
+            throw new BusinessException("These dates overlap another academic year.");
+        }
         jdbcTemplate.update(
                 "UPDATE academic_years SET start_date = ?, end_date = ? WHERE id = ? AND school_id = ?",
                 req.getStartDate(), req.getEndDate(), req.getId(), schoolId

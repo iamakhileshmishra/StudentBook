@@ -47,8 +47,9 @@ export function AddStudentModal({ onClose }: Props) {
       setTimeout(onClose, 1500)
     },
     onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { message?: string } } })
-        ?.response?.data?.message ?? 'Failed to add student'
+      const data = (err as { response?: { data?: { message?: string; fieldErrors?: Record<string, string> } } })
+        ?.response?.data
+      const msg = (data?.fieldErrors && Object.values(data.fieldErrors)[0]) || data?.message || 'Failed to add student'
       setErrors({ submit: msg })
     },
   })

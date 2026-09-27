@@ -87,7 +87,9 @@ public class StudentService {
         if (activeCount == null) activeCount = 0L;
 
         // Paged query
-        sql.append(" ORDER BY (CASE WHEN s.admission_number ~ '^[0-9]+$' THEN CAST(s.admission_number AS INTEGER) ELSE 99999 END) ASC");
+        // NUMERIC so long numeric admission numbers can't overflow and break the list (BUG-08);
+        // non-numeric ones sort after all numbers, then alphabetically
+        sql.append(" ORDER BY (CASE WHEN s.admission_number ~ '^[0-9]+$' THEN CAST(s.admission_number AS NUMERIC) END) ASC NULLS LAST, s.admission_number ASC");
         sql.append(" LIMIT ? OFFSET ?");
         params.add(size);
         params.add(offset);

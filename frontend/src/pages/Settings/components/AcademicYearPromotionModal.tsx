@@ -36,8 +36,9 @@ export function AcademicYearPromotionModal({ isOpen, onClose }: Props) {
       alert('Academic year closed and students promoted successfully!');
       onClose();
     },
-    onError: () => {
-      alert('Failed to process promotion. Please try again.');
+    onError: (err: any) => {
+      const data = err?.response?.data;
+      alert((data?.fieldErrors && Object.values(data.fieldErrors)[0]) || data?.message || 'Failed to process promotion. Please try again.');
     }
   });
 
