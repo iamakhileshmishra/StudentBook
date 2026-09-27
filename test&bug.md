@@ -5,50 +5,54 @@
 | **Scope** | Backend (Spring Boot, all modules) + frontend (React) at commit `d1b5d81` |
 | **Method** | Code review of every controller/service/repository, plus live probes against the local Docker stack |
 | **Date** | 2026-09-28 |
-| **Code changes made** | None — findings only |
+| **Code changes made** | None in the original review. **All findings fixed on 2026-09-28** — see *Resolution log* below |
 
 **Status legend** — ✅ *Confirmed*: reproduced against the running app. 🔍 *Code review*: found by reading the code; not reproduced (usually because it would need destructive actions or seeded students).
 
 **Severity legend** — 🔴 Critical · 🟠 High · 🟡 Medium · 🔵 Low
 
+**Tokens (≈)** — approximate share of this session's token budget used to fix and test the item. Fixes were done in three groups, so each item shows its group's total divided by the items in it: **G1** auth/sessions ≈65k for 9 items · **G2** money/tenancy ≈76k for 19 items · **G3** access control/hardening ≈33k for 6 items. These are estimates from the remaining-budget counter, not exact per-item measurements.
+
 ---
 
 ## Summary
 
-| ID | Severity | Area | Finding | Status |
-|---|---|---|---|---|
-| SEC-01 | 🔴 Critical | Multi-tenancy | Year-end promotion can modify **another school's students** | 🔍 |
-| SEC-02 | 🔴 Critical | Auth / Config | JWT secret has a **hard-coded fallback** — forged tokens for any school if `JWT_SECRET` is unset | 🔍 |
-| BUG-01 | 🟠 High | Auth (frontend) | **Silent token refresh never works** — users are logged out every ~15 min | ✅ |
-| SEC-03 | 🟠 High | Auth | **Login lockout never triggers** — unlimited password guessing | ✅ |
-| SEC-04 | 🟠 High | Auth | Sessions **not revoked** on password change/reset or logout (refresh token valid 7 days) | 🔍 |
-| BUG-02 | 🟠 High | Fees | Promotion **multi-counts arrears** (previous dues added once per unpaid month, then again) | 🔍 |
-| BUG-03 | 🟠 High | Fees | Fee collection **trusts client amounts** — negative/oversized concession & late fee, `null` → 500 | 🔍 |
-| BUG-04 | 🟠 High | Fees | **Double payment** possible for the same student/month (race, no DB constraint) | 🔍 |
-| BUG-05 | 🟠 High | Fees | Receipt number can exceed `VARCHAR(30)` → **fee collection fails** for some students | 🔍 |
-| SEC-05 | 🟠 High | Authorization | **No role checks anywhere** — every logged-in user is effectively admin | 🔍 |
-| SEC-06 | 🟡 Medium | Multi-tenancy | Fee amount update accepts **another school's class/category IDs** | 🔍 |
-| SEC-07 | 🟡 Medium | Auth | **Username & email enumeration** via response timing and messages | ✅ |
-| SEC-08 | 🟡 Medium | Abuse | Public endpoints have **no rate limiting / CAPTCHA** (sign-up spam, email bombing) | 🔍 |
-| SEC-09 | 🟡 Medium | Registration | No email verification — anyone can **squat a school's email** | 🔍 |
-| SEC-10 | 🟡 Medium | Auth | `must_change_password` **enforced only in the frontend** | 🔍 |
-| SEC-11 | 🟡 Medium | Auth | Current-password checks in Settings/Remove Student have **no attempt limit** | 🔍 |
-| SEC-12 | 🟡 Medium | Export | **CSV formula injection** in backup export | 🔍 |
-| SEC-13 | 🟡 Medium | Info leak | Actuator health details & Swagger/OpenAPI are **public** | ✅ |
-| BUG-06 | 🟡 Medium | Fees | Promotion counts **future & pre-admission months** as arrears, ignores concession | 🔍 |
-| BUG-07 | 🟡 Medium | Students | Section not checked against class; inactive class/section accepted | 🔍 |
-| BUG-08 | 🟡 Medium | Students | One huge numeric admission number **breaks auto-numbering** for the school | 🔍 |
-| BUG-09 | 🟡 Medium | Students | Negative concession accepted on student create/update | 🔍 |
-| BUG-10 | 🟡 Medium | Fees | Fees can be collected for students who have **LEFT/GRADUATED** | 🔍 |
-| BUG-11 | 🟡 Medium | API | Invalid pagination / limits / not-found → **500 errors** | ✅ |
-| BUG-12 | 🟡 Medium | Time | Server uses **UTC** for "today" — wrong date/late fee around IST midnight | 🔍 |
-| BUG-13 | 🔵 Low | API | Unique-constraint violations surface as generic **500** instead of a clear message | 🔍 |
-| BUG-14 | 🔵 Low | Fees | Deleted/inactive fee categories still charged, shown as "Fee" on dues/receipts | 🔍 |
-| BUG-15 | 🔵 Low | Fees | Arrears-category fallback returns a fake UUID → later FK failure | 🔍 |
-| BUG-16 | 🔵 Low | Settings | School profile / academic year / late-fee rules have almost no validation | 🔍 |
-| SEC-14 | 🔵 Low | Transport | Refresh cookie `Secure=false` hard-coded, no `SameSite` | 🔍 |
-| SEC-15 | 🔵 Low | Config | Dev credentials committed; Postgres & pgAdmin exposed on host ports | 🔍 |
-| SEC-16 | 🔵 Low | Auth | Invalid/expired bearer token makes **public** endpoints return 401 | ✅ |
+| ID | Severity | Area | Finding | Found by | Fix | Current status | Tokens (≈) |
+|---|---|---|---|---|---|---|---|
+| SEC-01 | 🔴 Critical | Multi-tenancy | Year-end promotion can modify **another school's students** | 🔍 | Promotion validates every student, target class & section against the caller's school before any change | ✅ Fixed · verified | ≈4k · G2 |
+| SEC-02 | 🔴 Critical | Auth / Config | JWT secret has a **hard-coded fallback** — forged tokens for any school if `JWT_SECRET` is unset | 🔍 | No secret fallback; startup fails if missing/short, or a published example secret outside `dev` | ✅ Fixed · verified | ≈7k · G1 |
+| BUG-01 | 🟠 High | Auth (frontend) | **Silent token refresh never works** — users are logged out every ~15 min | ✅ | Frontend no longer sends the token to `/auth/*`; filter ignores bad tokens (see SEC-16) | ✅ Fixed · verified | ≈7k · G1 |
+| SEC-03 | 🟠 High | Auth | **Login lockout never triggers** — unlimited password guessing | ✅ | Failed-attempt counter commits in its own transaction (`LoginAttemptService`, REQUIRES_NEW) | ✅ Fixed · verified | ≈7k · G1 |
+| SEC-04 | 🟠 High | Auth | Sessions **not revoked** on password change/reset or logout (refresh token valid 7 days) | 🔍 | `token_version` checked per request/refresh, bumped on password change/reset; logout revokes refresh `jti` | ✅ Fixed · verified | ≈7k · G1 |
+| BUG-02 | 🟠 High | Fees | Promotion **multi-counts arrears** (previous dues added once per unpaid month, then again) | 🔍 | One shared arrears calculation: each unpaid month once + old arrears once | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-03 | 🟠 High | Fees | Fee collection **trusts client amounts** — negative/oversized concession & late fee, `null` → 500 | 🔍 | `CollectFeeRequest` validated; concession capped at the fee; nulls treated as 0 | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-04 | 🟠 High | Fees | **Double payment** possible for the same student/month (race, no DB constraint) | 🔍 | Partial unique index (student, year, month) WHERE CONFIRMED + friendly error | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-05 | 🟠 High | Fees | Receipt number can exceed `VARCHAR(30)` → **fee collection fails** for some students | 🔍 | `receipt_number` → VARCHAR(64); short name sanitized to ≤10 chars | ✅ Fixed · verified | ≈4k · G2 |
+| SEC-05 | 🟠 High | Authorization | **No role checks anywhere** — every logged-in user is effectively admin | 🔍 | Role matrix in `SecurityConfig`: FEE_COLLECTOR = read + collect fees; everything else admin-only | ✅ Fixed · verified (API). UI still shows admin buttons to collectors | ≈5.5k · G3 |
+| SEC-06 | 🟡 Medium | Multi-tenancy | Fee amount update accepts **another school's class/category IDs** | 🔍 | Class & category must belong to the caller's school | ✅ Fixed · verified | ≈4k · G2 |
+| SEC-07 | 🟡 Medium | Auth | **Username & email enumeration** via response timing and messages | ✅ | Dummy BCrypt for unknown users; deactivated msg only after correct password; equal-cost forgot-password paths, async email | ✅ Fixed · verified (0.38–0.45 s on all paths) | ≈7k · G1 |
+| SEC-08 | 🟡 Medium | Abuse | Public endpoints have **no rate limiting / CAPTCHA** (sign-up spam, email bombing) | 🔍 | Per-IP rate limits (login, register, forgot, OTP, refresh) → 429; 10 codes/day/account cap | 🟡 Mostly fixed · verified. CAPTCHA not added (needs a provider account/keys) | ≈5.5k · G3 |
+| SEC-09 | 🟡 Medium | Registration | No email verification — anyone can **squat a school's email** | 🔍 | Unverified sign-ups (admin never signed in) purged after 48 h, releasing the email | 🟡 Mitigated · verified. No separate email-link verification step | ≈5.5k · G3 |
+| SEC-10 | 🟡 Medium | Auth | `must_change_password` **enforced only in the frontend** | 🔍 | API returns 403 `PASSWORD_CHANGE_REQUIRED` for everything except change-password | ✅ Fixed · verified | ≈7k · G1 |
+| SEC-11 | 🟡 Medium | Auth | Current-password checks in Settings/Remove Student have **no attempt limit** | 🔍 | `PasswordGuard` shares the login lockout with Settings and Remove Student | ✅ Fixed · verified | ≈7k · G1 |
+| SEC-12 | 🟡 Medium | Export | **CSV formula injection** in backup export | 🔍 | Cells starting with = + - @ tab CR are prefixed with `'` | ✅ Fixed · verified | ≈4k · G2 |
+| SEC-13 | 🟡 Medium | Info leak | Actuator health details & Swagger/OpenAPI are **public** | ✅ | `show-details=when-authorized`; springdoc disabled in `prod` | ✅ Fixed · verified | ≈5.5k · G3 |
+| BUG-06 | 🟡 Medium | Fees | Promotion counts **future & pre-admission months** as arrears, ignores concession | 🔍 | Arrears only from enrollment month to current month, net of concession | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-07 | 🟡 Medium | Students | Section not checked against class; inactive class/section accepted | 🔍 | Section must belong to the class; both must be active | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-08 | 🟡 Medium | Students | One huge numeric admission number **breaks auto-numbering** for the school | 🔍 | NUMERIC casts in max-number query and list sort; manual number pattern ≤20 | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-09 | 🟡 Medium | Students | Negative concession accepted on student create/update | 🔍 | `@DecimalMin(0)` + lengths/phone validation on student DTOs | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-10 | 🟡 Medium | Fees | Fees can be collected for students who have **LEFT/GRADUATED** | 🔍 | Collection blocked unless student & enrollment are ACTIVE | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-11 | 🟡 Medium | API | Invalid pagination / limits / not-found → **500 errors** | ✅ | Page/size/limit clamped; bad params & malformed JSON → 400; unknown receipt → 404 | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-12 | 🟡 Medium | Time | Server uses **UTC** for "today" — wrong date/late fee around IST midnight | 🔍 | `SchoolClock` (Asia/Kolkata) for receipt date, days late, today's total, backup name | ✅ Fixed · verified (receipt dated 28 Sep IST while server was 27 Sep UTC) | ≈4k · G2 |
+| BUG-13 | 🔵 Low | API | Unique-constraint violations surface as generic **500** instead of a clear message | 🔍 | `DataIntegrityViolationException` → 409; duplicate category-name check | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-14 | 🔵 Low | Fees | Deleted/inactive fee categories still charged, shown as "Fee" on dues/receipts | 🔍 | `FeeStructureLookup.activeRows` drops inactive categories everywhere | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-15 | 🔵 Low | Fees | Arrears-category fallback returns a fake UUID → later FK failure | 🔍 | Fake fallback UUID removed | ✅ Fixed (code) | ≈4k · G2 |
+| BUG-16 | 🔵 Low | Settings | School profile / academic year / late-fee rules have almost no validation | 🔍 | Profile/late-fee/academic-year validation, unique email check, email required | ✅ Fixed · verified | ≈5.5k · G3 |
+| SEC-14 | 🔵 Low | Transport | Refresh cookie `Secure=false` hard-coded, no `SameSite` | 🔍 | `ResponseCookie` with `SameSite=Strict`, `Secure` from config (true in prod) | ✅ Fixed · verified | ≈7k · G1 |
+| SEC-15 | 🔵 Low | Config | Dev credentials committed; Postgres & pgAdmin exposed on host ports | 🔍 | Ports bound to 127.0.0.1; compose marked dev-only; prod secrets via `.env` | ✅ Fixed | ≈5.5k · G3 |
+| SEC-16 | 🔵 Low | Auth | Invalid/expired bearer token makes **public** endpoints return 401 | ✅ | Invalid/expired token → anonymous; Spring returns JSON 401 only where auth is required | ✅ Fixed · verified | ≈7k · G1 |
+| BUG-17 | 🟠 High | Students | **Adding a student always failed** (500): `@Builder` ignored entity defaults → `previous_dues` NULL (since `93d8f33`) | Found while fixing | `@Builder.Default` on all entity field defaults | ✅ Fixed · verified | ≈4k · G2 |
+| BUG-18 | 🟠 High | Fees | **Late fees were never applied**: JSONB rules read via a `(String)` cast inside a catch-all that failed silently | Found while fixing | Rules read as `late_fee_rules::text`; parse errors logged | ✅ Fixed · verified (NSNVPS now shows ₹100 at 18 days late) | ≈4k · G2 |
 
 ---
 
@@ -262,6 +266,51 @@ With an invalid/expired `Authorization` header, `/api/auth/login` and `/api/auth
 
 ---
 
+## Resolution log (2026-09-28)
+
+| Group | Commit | Items | Migration |
+|---|---|---|---|
+| G1: authentication & sessions | `6c3e5a9` | SEC-02, BUG-01, SEC-03, SEC-04, SEC-07, SEC-10, SEC-11, SEC-14, SEC-16 | `V13__session_revocation.sql` |
+| G2: money correctness & tenant isolation | `193c583` | SEC-01, SEC-06, SEC-12, BUG-02 to BUG-15, BUG-17, BUG-18 | `V14__fee_integrity.sql` |
+| G3: access control & hardening | `ff2c439` + follow-up | SEC-05, SEC-08, SEC-09, SEC-13, SEC-15, BUG-16 (+ BUG-08 follow-up) | none |
+
+**How it was verified.** Every fix was exercised against the running Docker stack, using test schools and data created for the purpose (Little Flower, Sunrise, Global Vision, St. Mary's, Blue Bells, plus a `FEE_COLLECTOR` test user). Selected evidence:
+
+- **Sessions (BUG-01, SEC-04, SEC-16)**
+  - An expired bearer token on `/auth/refresh` now returns 200 (was 401).
+  - After logout, a replayed refresh cookie returns 401.
+  - After a password reset, the old access token and old refresh cookie both return 401.
+  - In the browser, reloading any page keeps you signed in, and logging out stays logged out.
+- **SEC-03 / SEC-11 (lockout):**
+  - 5 wrong logins → the 5th shows the lock message, and `failed_attempts=5, locked=true`.
+  - The correct password is refused while locked.
+  - 5 wrong "current password" attempts in Settings lock the account the same way.
+- **SEC-10:** a new school's admin gets `403 PASSWORD_CHANGE_REQUIRED` on `/api/students` until the password is set; afterwards the new token works and the old one gets 401.
+- **SEC-01 / BUG-02 / BUG-06 (promotion)**
+  - **Cross-school request:** one containing another school's student is rejected, and that student stays ACTIVE.
+  - **Carry-forward:** Aarav (5 unpaid months × ₹600, plus ₹1,000 old arrears) carries **₹4,000**; before the fix this would have been about ₹9,000 or more. Diya (6 × ₹500 after concession) carries **₹3,000**. A mid-year joiner carries only the months since joining.
+  - **Double submit:** blocked.
+- **BUG-04:** 3 simultaneous collections for one month → 1 success, 2 × "already collected", and exactly 1 row in the DB.
+- **BUG-05:** receipt `LITTLEFLWR-2026-0928-ADM2026001-75CD` (36 characters) saved.
+- **BUG-12:** at 02:15 IST (20:45 UTC the day before), the payment date and receipt date are **28 Sep**, and today's dashboard total includes those payments.
+- **BUG-18:** the sample school NSNVPS now computes ₹100 late fee at 18 days late, per its own rules.
+- **SEC-05:**
+  - **Allowed for FEE_COLLECTOR:** dashboard, students, fee structure, payments and school-profile reads, and fee collection.
+  - **Refused with 403:** backup, promotion, fee edits, student create, profile edit and class create.
+- **SEC-08:** the 11th login in a minute → 429 with `Retry-After`; the 6th forgot-password → 429; the 6th sign-up in an hour → 429.
+- **SEC-09:** a second sign-up with the same email is refused; after the first sat unverified for 49 h, it was purged and the real owner could register.
+- **Regression on the sample school (read-only):** every page endpoint returns 200, old receipts open, dues calculate for every active student, and the promotion preview loads.
+
+**Remaining / follow-ups**
+- **SEC-08:** no CAPTCHA yet. It needs a provider (e.g. Cloudflare Turnstile or reCAPTCHA) and site keys; rate limits cover most of the risk meanwhile.
+- **SEC-09:** ownership is proven by the first sign-in with the emailed temporary password, and never-used sign-ups are purged after 48 h. A separate "click to verify" link was not added.
+- **SEC-05:**
+  - **UI:** roles are enforced by the API only. Collectors still see admin-only buttons and get a clear "no permission" message when they use them; hiding those buttons is a UI follow-up.
+  - **Staff accounts:** there is no screen yet to create them (see `feature.md`).
+- **Rate-limit counters:** they are in memory, so they reset on restart and are per instance. Move them to Redis if the backend is ever scaled out.
+
+---
+
 ## ✔ Checked and looks OK
 - **SQL injection:** all `JdbcTemplate` queries use `?` parameters; search terms are bound, not concatenated.
 - **XSS:**
@@ -280,72 +329,72 @@ With an invalid/expired `Authorization` header, `/api/auth/login` and `/api/auth
 ## Test Cases to Run (manual / automated)
 
 ### Authentication & sessions
-- [ ] Wrong password 5× → account locked 5 minutes; 6th attempt shows the lock message (fails today, SEC-03)
-- [ ] Stay idle 16 minutes, then click a page → still logged in via silent refresh (fails today, BUG-01)
-- [ ] Refresh the browser (F5) → session survives (fails today: token kept only in memory, no refresh on load)
-- [ ] Reset password in browser B → browser A session ends (fails today, SEC-04)
-- [ ] Logout, then replay the old refresh cookie → rejected (fails today, SEC-04)
-- [ ] User ID login is case-insensitive (`GVPS.ADMIN`) ✅
-- [ ] Deactivated user cannot log in or refresh
-- [ ] `must_change_password` user calling `/api/students` directly → blocked (fails today, SEC-10)
-- [ ] Forged token signed with the default secret is rejected in prod config (SEC-02)
+- [x] Wrong password 5× → account locked 5 minutes; 6th attempt shows the lock message (fixed)
+- [x] Stay idle 16 minutes, then click a page → still logged in via silent refresh (fixed)
+- [x] Refresh the browser (F5) → session survives (fixed: session restored from the refresh cookie)
+- [x] Reset password in browser B → browser A session ends (fixed)
+- [x] Logout, then replay the old refresh cookie → rejected (fixed)
+- [x] User ID login is case-insensitive (`GVPS.ADMIN`) ✅
+- [x] Deactivated user cannot log in or refresh
+- [x] `must_change_password` user calling `/api/students` directly → blocked (fixed)
+- [x] Forged token signed with the default secret is rejected in prod config (SEC-02)
 
 ### Registration
-- [ ] Required-field, pincode (6 digits), phone and email validation messages appear per field ✅
-- [ ] Same email twice (any case) → friendly error ✅; two simultaneous submits → no 500
-- [ ] Short name blank → initials used; short name with symbols → rejected ✅
-- [ ] School names that give < 3 initials (`"St X"`, `"DPS"`), non-English names (`"विद्या मंदिर"`), names that are only numbers/symbols → sensible User ID
-- [ ] SMTP down → registration rolls back, no orphan school ✅
-- [ ] New school: dashboard, fee structure and students pages work with 0 classes/students ✅
+- [x] Required-field, pincode (6 digits), phone and email validation messages appear per field ✅
+- [x] Same email twice (any case) → friendly error ✅; two simultaneous submits → no 500
+- [x] Short name blank → initials used; short name with symbols → rejected ✅
+- [x] School names that give < 3 initials (`"St X"`, `"DPS"`), non-English names (`"विद्या मंदिर"`), names that are only numbers/symbols → sensible User ID — `St X`→`sx.admin`, `DPS`→`dps.admin`, `Modern`→`modern.admin` (short name `MODERN`), Hindi-only name→`school.admin`
+- [x] SMTP down → registration rolls back, no orphan school ✅
+- [x] New school: dashboard, fee structure and students pages work with 0 classes/students ✅
 
 ### Forgot password / change password (OTP)
-- [ ] Unknown email → same message as known ✅; timing roughly equal (fails today, SEC-07)
-- [ ] Code expires after 10 minutes; used code can't be reused ✅
-- [ ] 5 wrong codes → locked; the correct code is then rejected too ✅
-- [ ] Resend within 60 seconds → no new email ✅; after 60 seconds → the old code is invalid
-- [ ] Reset code can't be used for a Settings change and vice versa ✅
-- [ ] Settings change: wrong current password, same password, < 8 characters, mismatch → inline errors ✅
-- [ ] School with no email → clear message when changing password
-- [ ] Reset unlocks a locked account ✅
+- [x] Unknown email → same message as known ✅; timing roughly equal (fixed)
+- [x] Code expires after 10 minutes; used code can't be reused ✅
+- [x] 5 wrong codes → locked; the correct code is then rejected too ✅
+- [x] Resend within 60 seconds → no new email ✅; after 60 seconds → the old code is invalid
+- [x] Reset code can't be used for a Settings change and vice versa ✅
+- [x] Settings change: wrong current password, same password, < 8 characters, mismatch → inline errors ✅
+- [x] School with no email → clear message when changing password
+- [x] Reset unlocks a locked account ✅
 
 ### Fees
-- [ ] Double-click "Collect" → exactly one payment (BUG-04)
-- [ ] Concession > total, negative late fee, empty concession → 400 with a message (BUG-03)
-- [ ] Month 13 / year 1900 / future month → 400
-- [ ] School short name `SUNRISE`, admission number `ADM2026001` → receipt saved (BUG-05)
-- [ ] Deactivated fee category is not charged (BUG-14)
-- [ ] Late fee exactly on the due day, 1 day late, beyond the highest rule tier, due day 31 in February
-- [ ] LEFT student → collection blocked (BUG-10)
-- [ ] Payment at 00:30 IST → receipt date is today in IST (BUG-12)
+- [x] Double-click "Collect" → exactly one payment (BUG-04)
+- [x] Concession > total, negative late fee, empty concession → 400 with a message (BUG-03)
+- [x] Month 13 / year 1900 / future month → 400
+- [x] School short name `SUNRISE`, admission number `ADM2026001` → receipt saved (BUG-05)
+- [x] Deactivated fee category is not charged (BUG-14)
+- [x] Late fee exactly on the due day, 1 day late, beyond the highest rule tier, due day 31 in February — 0 / 20 / 50 / 50 as expected; due day is capped at 28 so February is always valid
+- [x] LEFT student → collection blocked (BUG-10)
+- [x] Payment at 00:30 IST → receipt date is today in IST (BUG-12)
 
 ### Students
-- [ ] Section from a different class → rejected (BUG-07)
-- [ ] Admission number `99999999999`, then add a student with an auto number (BUG-08)
-- [ ] Negative concession → rejected (BUG-09)
-- [ ] Duplicate admission number (manual and concurrent) → friendly error
-- [ ] Leading zeros `007` stored as `7`; `000` handling
-- [ ] Very long names/addresses → validation, not a 500
+- [x] Section from a different class → rejected (BUG-07)
+- [x] Admission number `99999999999`, then add a student with an auto number (BUG-08)
+- [x] Negative concession → rejected (BUG-09)
+- [x] Duplicate admission number (manual and concurrent) → friendly error
+- [x] Leading zeros `007` stored as `7`; `000` handling — `000`→`0`
+- [x] Very long names/addresses → validation, not a 500
 
 ### Year-end promotion
-- [ ] Student with old arrears + 3 unpaid months → correct carry-forward (BUG-02)
-- [ ] Mid-year admission → no arrears for months before joining (BUG-06)
-- [ ] Promotion run in January → future months not counted (BUG-06)
-- [ ] Payload with another school's student/class ID → rejected (SEC-01)
-- [ ] Double-submit the promotion → second run blocked
-- [ ] Duplicate new academic-year name → friendly error
+- [x] Student with old arrears + 3 unpaid months → correct carry-forward (BUG-02)
+- [x] Mid-year admission → no arrears for months before joining (BUG-06)
+- [x] Promotion run in January → future months not counted (BUG-06)
+- [x] Payload with another school's student/class ID → rejected (SEC-01)
+- [x] Double-submit the promotion → second run blocked
+- [x] Duplicate new academic-year name → friendly error
 
 ### Multi-tenancy (two schools, A and B)
-- [ ] With A's token, call every `{id}` endpoint using B's IDs (student, class, section, category, receipt, promotion, fee update) → 404/400 every time (fails today: SEC-01, SEC-06)
-- [ ] Backup ZIP for A contains no rows from B
+- [x] With A's token, call every `{id}` endpoint using B's IDs (student, class, section, category, receipt, promotion, fee update) → 404/400 every time (fixed)
+- [x] Backup ZIP for A contains no rows from B
 
 ### API robustness
-- [ ] `page=-1`, `size=0`, `size=100000`, `limit=-5` → 400 or clamped (BUG-11)
-- [ ] Unknown receipt → 404 (BUG-11)
-- [ ] Malformed JSON / wrong types → 400, not 500
-- [ ] Unauthenticated access to `/actuator/health`, `/v3/api-docs` in prod → no details (SEC-13)
+- [x] `page=-1`, `size=0`, `size=100000`, `limit=-5` → 400 or clamped (BUG-11)
+- [x] Unknown receipt → 404 (BUG-11)
+- [x] Malformed JSON / wrong types → 400, not 500
+- [x] Unauthenticated access to `/actuator/health`, `/v3/api-docs` in prod → no details (SEC-13)
 
 ### Export
-- [ ] Student named `=1+1` → backup CSV cell shows the text, not `2` (SEC-12)
+- [x] Student named `=1+1` → backup CSV cell shows the text, not `2` (SEC-12)
 
 ---
 

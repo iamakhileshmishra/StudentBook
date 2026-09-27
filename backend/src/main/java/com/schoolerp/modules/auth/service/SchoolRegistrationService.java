@@ -67,6 +67,10 @@ public class SchoolRegistrationService {
         String shortName = blankToNull(req.getShortName());
         if (shortName == null) {
             String initials = initials(schoolName).toUpperCase(Locale.ROOT);
+            if (initials.length() < 2) {
+                // One-word names ("DPS"): use the word itself rather than a lone initial
+                initials = schoolName.replaceAll("[^A-Za-z0-9]", "").toUpperCase(Locale.ROOT);
+            }
             shortName = initials.length() >= 2 ? initials.substring(0, Math.min(10, initials.length())) : null;
         }
 
