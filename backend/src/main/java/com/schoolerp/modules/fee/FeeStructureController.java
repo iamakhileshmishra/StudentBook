@@ -22,6 +22,18 @@ public class FeeStructureController {
         return ResponseEntity.ok(service.getCategories());
     }
 
+    @PostMapping("/categories")
+    public ResponseEntity<FeeCategoryDto> createCategory(@Valid @RequestBody CreateFeeCategoryRequest request) {
+        return ResponseEntity.ok(service.createCategory(request));
+    }
+
+    @PutMapping("/categories/{id}")
+    public ResponseEntity<FeeCategoryDto> updateCategory(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateFeeCategoryRequest request) {
+        return ResponseEntity.ok(service.updateCategory(id, request));
+    }
+
     @GetMapping
     public ResponseEntity<List<ClassFeeStructureDto>> getAllClassFeeStructures() {
         return ResponseEntity.ok(service.getFeeStructureForCurrentYear());

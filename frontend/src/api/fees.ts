@@ -22,6 +22,10 @@ export interface ClassFeeStructureDto {
   totalMonthlyFee: number
 }
 
+export interface CreateFeeCategoryRequest {
+  name: string
+}
+
 export interface UpdateFeeAmountRequest {
   classId: string
   feeCategoryId: string
@@ -31,6 +35,12 @@ export interface UpdateFeeAmountRequest {
 export const feesApi = {
   getCategories: () =>
     api.get<FeeCategoryDto[]>('/fee-structure/categories').then((r) => r.data),
+
+  createCategory: (data: CreateFeeCategoryRequest) =>
+    api.post<FeeCategoryDto>('/fee-structure/categories', data).then((r) => r.data),
+
+  updateCategory: ({ id, data }: { id: string; data: CreateFeeCategoryRequest }) =>
+    api.put<FeeCategoryDto>(`/fee-structure/categories/${id}`, data).then((r) => r.data),
 
   getAllStructures: () =>
     api.get<ClassFeeStructureDto[]>('/fee-structure').then((r) => r.data),

@@ -40,13 +40,44 @@ public class FeeStructureService {
         UUID schoolId = TenantContext.getSchoolId();
         return categoryRepository.findBySchoolIdAndActiveTrueOrderByDisplayOrderAsc(schoolId)
                 .stream()
-                .map(c -> FeeCategoryDto.builder()
-                        .id(c.getId())
-                        .name(c.getName())
-                        .displayOrder(c.getDisplayOrder())
-                        .active(c.isActive())
-                        .build())
+                .map(this::toFeeCategoryDto)
                 .toList();
+    }
+
+    @Transactional
+    public FeeCategoryDto createCategory(CreateFeeCategoryRequest request) {
+        UUID schoolId = TenantContext.getSchoolId();
+        
+        List<FeeCategory> existing = categoryRepository.findBySchoolIdAndActiveTrueOrderByDisplayOrderAsc(schoolId);
+        int maxOrder = existing.isEmpty() ? 0 : existing.get(existing.size() - 1).getDisplayOrder();
+        
+        FeeCategory newCat = FeeCategory.builder()
+                .schoolId(schoolId)
+                .name(request.getName())
+                .displayOrder(maxOrder + 1)
+                .active(true)
+                .build();
+        return toFeeCategoryDto(categoryRepository.save(newCat));
+    }
+
+    @Transactional
+    public FeeCategoryDto updateCategory(UUID id, CreateFeeCategoryRequest request) {
+        UUID schoolId = TenantContext.getSchoolId();
+        FeeCategory category = categoryRepository.findById(id)
+                .filter(c -> c.getSchoolId().equals(schoolId))
+                .orElseThrow(() -> new BusinessException("Category not found"));
+                
+        category.setName(request.getName());
+        return toFeeCategoryDto(categoryRepository.save(category));
+    }
+
+    private FeeCategoryDto toFeeCategoryDto(FeeCategory c) {
+        return FeeCategoryDto.builder()
+                .id(c.getId())
+                .name(c.getName())
+                .displayOrder(c.getDisplayOrder())
+                .active(c.isActive())
+                .build();
     }
 
     // ─── Get fee structure for all classes (current year) ───────────────────
