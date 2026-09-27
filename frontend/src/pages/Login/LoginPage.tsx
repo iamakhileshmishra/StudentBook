@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, GraduationCap, Loader2 } from 'lucide-react'
 import { authApi } from '@/api/auth'
 import { useAuthStore } from '@/store/authStore'
@@ -150,6 +150,9 @@ export function LoginPage() {
 
           <p className="text-center text-sm text-slate-400 mt-8">
             New Shanti Niketan Vidyapeeth Public School
+          </p>
+          <p className="text-center text-sm mt-3">
+            <Link to="/" className="text-brand-600 hover:text-brand-700 font-medium">← Back to home</Link>
           </p>
         </div>
       </div>

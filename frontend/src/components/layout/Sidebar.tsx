@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
@@ -11,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import api from '@/api/axios'
+import { LogoutConfirmModal } from './LogoutConfirmModal'
 
 const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,6 +26,8 @@ const NAV_ITEMS = [
 export function Sidebar() {
   const { user, logout } = useAuthStore()
   const navigate = useNavigate()
+
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
 
   const handleLogout = async () => {
     try { await api.post('/auth/logout') } catch { /* ignore */ }
@@ -73,13 +77,20 @@ export function Sidebar() {
       {/* Logout */}
       <div className="border-t border-slate-700/50 p-3">
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutConfirm(true)}
           className="sidebar-nav-item w-full mt-1 text-red-400 hover:text-red-300 hover:bg-red-500/10"
         >
           <LogOut className="w-4 h-4" />
           <span>Logout</span>
         </button>
       </div>
+
+      {showLogoutConfirm && (
+        <LogoutConfirmModal
+          onConfirm={handleLogout}
+          onClose={() => setShowLogoutConfirm(false)}
+        />
+      )}
     </aside>
   )
 }
