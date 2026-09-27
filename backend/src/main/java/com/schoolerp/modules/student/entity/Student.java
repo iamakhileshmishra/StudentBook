@@ -64,12 +64,14 @@ public class Student {
     @Column(name = "is_staff_child", nullable = false)
     private boolean staffChild;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "concession_amount", nullable = false, precision = 10, scale = 2)
     private BigDecimal concessionAmount = BigDecimal.ZERO;
 
     @Column(name = "concession_note", columnDefinition = "TEXT")
     private String concessionNote;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
 

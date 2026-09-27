@@ -67,6 +67,12 @@ export const FeeCollectionPage = () => {
       setReceipt(data);
       setIsReceiptModalOpen(true);
     },
+    // Failures used to be silent; show the server's reason (validation, already paid, etc.)
+    onError: (err: any) => {
+      const data = err?.response?.data;
+      const fieldError = data?.fieldErrors && Object.values(data.fieldErrors)[0];
+      alert(fieldError || data?.message || 'Could not collect the fee. Please try again.');
+    },
   });
 
   const handleViewReceipt = async () => {

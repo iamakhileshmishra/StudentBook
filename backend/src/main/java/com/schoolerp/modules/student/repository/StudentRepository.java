@@ -17,10 +17,10 @@ public interface StudentRepository extends JpaRepository<Student, UUID> {
     boolean existsBySchoolIdAndAdmissionNumber(UUID schoolId, String admissionNumber);
 
     @Query(value = """
-        SELECT COALESCE(MAX(CAST(admission_number AS INTEGER)), 0)
+        SELECT COALESCE(MAX(CAST(admission_number AS NUMERIC)), 0)
         FROM students
         WHERE school_id = :schoolId
         AND admission_number ~ '^[0-9]+$'
         """, nativeQuery = true)
-    int findMaxAdmissionNumber(@Param("schoolId") UUID schoolId);
+    java.math.BigDecimal findMaxAdmissionNumber(@Param("schoolId") UUID schoolId);
 }

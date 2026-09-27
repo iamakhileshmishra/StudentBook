@@ -23,6 +23,7 @@ public class DashboardController {
     public ResponseEntity<DashboardSummaryDto> getSummary(
             @RequestParam int month,
             @RequestParam int year) {
+        validatePeriod(month, year);
         return ResponseEntity.ok(dashboardService.getSummary(month, year));
     }
 
@@ -30,6 +31,7 @@ public class DashboardController {
     public ResponseEntity<List<ClassWiseStatDto>> getClassWiseStats(
             @RequestParam int month,
             @RequestParam int year) {
+        validatePeriod(month, year);
         return ResponseEntity.ok(dashboardService.getClassWiseStats(month, year));
     }
 
@@ -38,6 +40,7 @@ public class DashboardController {
             @RequestParam UUID classId,
             @RequestParam int month,
             @RequestParam int year) {
+        validatePeriod(month, year);
         return ResponseEntity.ok(dashboardService.getClassStudents(classId, month, year));
     }
 
@@ -45,5 +48,11 @@ public class DashboardController {
     public ResponseEntity<List<RecentTransactionDto>> getRecentTransactions(
             @RequestParam(defaultValue = "10") int limit) {
         return ResponseEntity.ok(dashboardService.getRecentTransactions(limit));
+    }
+
+    private static void validatePeriod(int month, int year) {
+        if (month < 1 || month > 12 || year < 2000 || year > 2100) {
+            throw new com.schoolerp.shared.exception.BusinessException("Enter a valid month (1-12) and year.");
+        }
     }
 }

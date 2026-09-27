@@ -26,12 +26,13 @@ public class DashboardService {
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final StudentEnrollmentRepository studentEnrollmentRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.schoolerp.shared.time.SchoolClock clock;
 
     public DashboardSummaryDto getSummary(int month, int year) {
         UUID schoolId = TenantContext.getSchoolId();
         UUID academicYearId = getCurrentAcademicYearId(schoolId);
 
-        BigDecimal todayCollection = paymentTransactionRepository.getTotalCollectionToday(schoolId, LocalDate.now());
+        BigDecimal todayCollection = paymentTransactionRepository.getTotalCollectionToday(schoolId, clock.today());
         BigDecimal thisMonthCollection = paymentTransactionRepository.getTotalCollectionForMonth(schoolId, month, year);
 
         long totalStudents = studentEnrollmentRepository.countBySchoolIdAndAcademicYearIdAndStatus(schoolId, academicYearId, "ACTIVE");
@@ -102,6 +103,7 @@ public class DashboardService {
 
     public List<RecentTransactionDto> getRecentTransactions(int limit) {
         UUID schoolId = TenantContext.getSchoolId();
+        limit = Math.max(1, Math.min(limit, 50)); // BUG-11: negative/huge limits used to 500
         List<PaymentTransaction> transactions = paymentTransactionRepository
                 .findBySchoolIdAndStatusOrderByConfirmedAtDesc(schoolId, "CONFIRMED", PageRequest.of(0, limit))
                 .getContent();

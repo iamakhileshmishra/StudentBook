@@ -33,8 +33,14 @@ public class PaymentHistoryController {
             @RequestParam(defaultValue = "") String search) {
         
         UUID schoolId = TenantContext.getSchoolId();
+        // BUG-11: negative page / zero or huge size used to 500 or run unbounded queries
+        page = Math.max(page, 0);
+        size = Math.max(1, Math.min(size, 100));
         
-        String searchParam = "%" + search.trim().toLowerCase() + "%";
+        // Treat % and _ typed by the user literally (Postgres LIKE default escape is \)
+        String escaped = search.trim().toLowerCase()
+                .replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+        String searchParam = "%" + escaped + "%";
         
         String countSql = "SELECT COUNT(*) FROM payment_transactions pt " +
                 "JOIN students s ON pt.student_id = s.id " +

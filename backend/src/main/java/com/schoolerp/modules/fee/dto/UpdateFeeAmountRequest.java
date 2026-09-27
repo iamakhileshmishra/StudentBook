@@ -1,6 +1,7 @@
 package com.schoolerp.modules.fee.dto;
 
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -17,5 +18,6 @@ public class UpdateFeeAmountRequest {
 
     @NotNull
     @DecimalMin(value = "0", message = "Amount cannot be negative")
+    @Digits(integer = 8, fraction = 2, message = "Enter a valid amount")
     private BigDecimal amount;
 }

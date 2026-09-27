@@ -3,6 +3,7 @@ package com.schoolerp.modules.fee;
 import com.schoolerp.modules.fee.dto.CollectFeeRequest;
 import com.schoolerp.modules.fee.dto.FeeDuesResponse;
 import com.schoolerp.modules.fee.service.FeeCollectionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,18 +30,13 @@ public class FeeCollectionController {
     }
 
     @PostMapping
-    public ResponseEntity<?> collectFee(@RequestBody CollectFeeRequest request) {
+    public ResponseEntity<?> collectFee(@Valid @RequestBody CollectFeeRequest request) {
         UUID collectedByUserId = getCurrentUserId();
         if (collectedByUserId == null) {
             return ResponseEntity.status(401).body("Unauthorized");
         }
-        
-        try {
-            var transaction = feeCollectionService.collectFee(request, collectedByUserId);
-            return ResponseEntity.ok(transaction);
-        } catch (IllegalArgumentException | IllegalStateException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Validation and business errors are returned as JSON by GlobalExceptionHandler
+        return ResponseEntity.ok(feeCollectionService.collectFee(request, collectedByUserId));
     }
 
     private UUID getCurrentUserId() {

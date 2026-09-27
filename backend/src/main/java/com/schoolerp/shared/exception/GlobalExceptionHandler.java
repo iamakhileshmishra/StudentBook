@@ -10,6 +10,12 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -74,6 +80,41 @@ public class GlobalExceptionHandler {
                         .status(401)
                         .error("Unauthorized")
                         .message("Authentication required")
+                        .timestamp(Instant.now())
+                        .build());
+    }
+
+    // ── Client errors that used to surface as 500 (test&bug.md BUG-11, BUG-13) ──
+
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class, DateTimeException.class})
+    public ResponseEntity<ErrorResponse> handleBadArgument(RuntimeException ex) {
+        return error(HttpStatus.BAD_REQUEST, "Bad Request", ex.getMessage() != null ? ex.getMessage() : "Invalid request");
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class,
+            MissingServletRequestParameterException.class})
+    public ResponseEntity<ErrorResponse> handleMalformed(Exception ex) {
+        String message = ex instanceof MissingServletRequestParameterException m
+                ? "Missing required parameter: " + m.getParameterName()
+                : ex instanceof MethodArgumentTypeMismatchException t
+                ? "Invalid value for parameter: " + t.getName()
+                : "Malformed request body";
+        return error(HttpStatus.BAD_REQUEST, "Bad Request", message);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());
+        return error(HttpStatus.CONFLICT, "Conflict",
+                "This conflicts with existing data — it may be a duplicate or still in use.");
+    }
+
+    private static ResponseEntity<ErrorResponse> error(HttpStatus status, String error, String message) {
+        return ResponseEntity.status(status)
+                .body(ErrorResponse.builder()
+                        .status(status.value())
+                        .error(error)
+                        .message(message)
                         .timestamp(Instant.now())
                         .build());
     }

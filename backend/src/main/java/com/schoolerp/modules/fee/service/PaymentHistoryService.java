@@ -31,7 +31,7 @@ public class PaymentHistoryService {
 
         PaymentTransaction transaction = paymentTransactionRepository
                 .findBySchoolIdAndReceiptNumber(schoolId, receiptNumber)
-                .orElseThrow(() -> new IllegalArgumentException("Receipt not found"));
+                .orElseThrow(() -> new com.schoolerp.shared.exception.ResourceNotFoundException("Receipt not found"));
 
         List<PaymentLineItem> items = paymentLineItemRepository.findByTransactionId(transaction.getId());
         

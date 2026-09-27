@@ -39,19 +39,23 @@ public class User {
     @Column(nullable = false, length = 30)
     private String role;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "is_active", nullable = false)
     private boolean active = true;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "failed_attempts", nullable = false)
     private int failedAttempts = 0;
 
     @Column(name = "locked_until")
     private Instant lockedUntil;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "must_change_password", nullable = false)
     private boolean mustChangePassword = false;
 
     /** Bumped on password change/reset to invalidate all existing tokens. */
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "token_version", nullable = false)
     private int tokenVersion = 0;
 

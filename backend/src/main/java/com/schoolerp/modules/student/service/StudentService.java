@@ -38,6 +38,7 @@ public class StudentService {
     private final JdbcTemplate jdbcTemplate;
     private final com.schoolerp.modules.auth.repository.UserRepository userRepository;
     private final com.schoolerp.modules.auth.service.PasswordGuard passwordGuard;
+    private final com.schoolerp.shared.time.SchoolClock clock;
 
     // ─── Search / List ────────────────────────────────────────────────────────
 
@@ -182,12 +183,14 @@ public class StudentService {
 
         // Validate class and section belong to this school
         SchoolClass schoolClass = classRepository.findById(req.getClassId())
-                .filter(c -> c.getSchoolId().equals(schoolId))
+                .filter(c -> c.getSchoolId().equals(schoolId) && c.isActive())
                 .orElseThrow(() -> new BusinessException("Invalid class selected"));
 
+        // BUG-07: the section must be an active section of the chosen class
         Section section = sectionRepository.findById(req.getSectionId())
-                .filter(s -> s.getSchoolId().equals(schoolId))
-                .orElseThrow(() -> new BusinessException("Invalid section selected"));
+                .filter(s -> s.getSchoolId().equals(schoolId) && s.isActive()
+                        && s.getClassId().equals(schoolClass.getId()))
+                .orElseThrow(() -> new BusinessException("Invalid section selected for this class"));
 
         // Generate or validate admission number
         String admissionNumber;
@@ -212,7 +215,7 @@ public class StudentService {
                 .firstName(req.getFirstName().trim())
                 .lastName(req.getLastName().trim())
                 .dateOfBirth(req.getDateOfBirth())
-                .gender(req.getGender())
+                .gender(StringUtils.hasText(req.getGender()) ? req.getGender() : null)
                 .fatherName(req.getFatherName())
                 .motherName(req.getMotherName())
                 .guardianName(req.getGuardianName())
@@ -226,7 +229,12 @@ public class StudentService {
                 .status("ACTIVE")
                 .createdBy(createdByUserId)
                 .build();
-        student = studentRepository.save(student);
+        try {
+            student = studentRepository.saveAndFlush(student);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            // Two people creating the same admission number at the same moment
+            throw new BusinessException("Admission number " + admissionNumber + " is already taken");
+        }
 
         // Save enrollment
         StudentEnrollment enrollment = StudentEnrollment.builder()
@@ -235,7 +243,7 @@ public class StudentService {
                 .academicYearId(currentYear.getId())
                 .classId(req.getClassId())
                 .sectionId(req.getSectionId())
-                .enrollmentDate(req.getEnrollmentDate() != null ? req.getEnrollmentDate() : LocalDate.now())
+                .enrollmentDate(req.getEnrollmentDate() != null ? req.getEnrollmentDate() : clock.today())
                 .status("ACTIVE")
                 .build();
         enrollment = enrollmentRepository.save(enrollment);
@@ -281,7 +289,7 @@ public class StudentService {
         student.setFirstName(req.getFirstName().trim());
         student.setLastName(req.getLastName().trim());
         student.setDateOfBirth(req.getDateOfBirth());
-        student.setGender(req.getGender());
+        student.setGender(StringUtils.hasText(req.getGender()) ? req.getGender() : null);
         student.setFatherName(req.getFatherName());
         student.setMotherName(req.getMotherName());
         student.setGuardianName(req.getGuardianName());
@@ -329,8 +337,14 @@ public class StudentService {
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
     private String generateNextAdmissionNumber(UUID schoolId) {
-        int max = studentRepository.findMaxAdmissionNumber(schoolId);
-        return String.valueOf(max + 1);
+        // NUMERIC, not INTEGER: one very large manual number used to overflow and
+        // break auto-numbering for the whole school (BUG-08)
+        java.math.BigDecimal max = studentRepository.findMaxAdmissionNumber(schoolId);
+        String next = (max == null ? java.math.BigInteger.ZERO : max.toBigInteger()).add(java.math.BigInteger.ONE).toString();
+        if (next.length() > 20) {
+            throw new BusinessException("Automatic admission numbers are exhausted; please enter one manually.");
+        }
+        return next;
     }
 
     private UUID getCurrentYearId(UUID schoolId) {

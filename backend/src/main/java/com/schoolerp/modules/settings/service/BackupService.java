@@ -21,6 +21,7 @@ import java.util.zip.ZipOutputStream;
 public class BackupService {
 
     private final JdbcTemplate jdbcTemplate;
+    private final com.schoolerp.shared.time.SchoolClock clock;
 
     public void generateCsvBackupZip(UUID academicYearId, HttpServletResponse response) throws IOException {
         UUID schoolId = TenantContext.getSchoolId();
@@ -33,7 +34,10 @@ public class BackupService {
         }
         if (shortName == null || shortName.isBlank()) shortName = "SCHOOL";
 
-        String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        // Short name is used in a header; keep it to safe characters
+        shortName = shortName.replaceAll("[^A-Za-z0-9_-]", "");
+        if (shortName.isEmpty()) shortName = "SCHOOL";
+        String dateStr = clock.today().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         String filename = String.format("%s_%s.zip", shortName, dateStr);
 
         response.setContentType("application/zip");
@@ -102,8 +106,8 @@ public class BackupService {
             for (int i = 0; i < headers.length; i++) {
                 try {
                     Object val = rs.getObject(i + 1);
-                    String str = val == null ? "" : val.toString();
-                    if (str.contains(",") || str.contains("\"") || str.contains("\n")) {
+                    String str = neutralizeFormula(val == null ? "" : val.toString());
+                    if (str.contains(",") || str.contains("\"") || str.contains("\n") || str.contains("\r")) {
                         str = "\"" + str.replace("\"", "\"\"") + "\"";
                     }
                     row[i] = str;
@@ -116,5 +120,19 @@ public class BackupService {
         
         writer.flush();
         zos.closeEntry();
+    }
+
+    /**
+     * Spreadsheet apps run cells starting with = + - @ (or tab/CR) as formulas, so a
+     * student named =HYPERLINK(...) would execute when the backup is opened
+     * (SEC-12). Prefix such cells with an apostrophe so they stay plain text.
+     * Plain negative numbers are left alone.
+     */
+    static String neutralizeFormula(String value) {
+        if (value.isEmpty()) return value;
+        char first = value.charAt(0);
+        boolean risky = first == '=' || first == '+' || first == '@' || first == '\t' || first == '\r'
+                || (first == '-' && !value.matches("-\\d+(\\.\\d+)?"));
+        return risky ? "'" + value : value;
     }
 }

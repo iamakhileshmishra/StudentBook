@@ -42,6 +42,7 @@ public class StudentEnrollment {
     @Column(name = "enrollment_date", nullable = false)
     private LocalDate enrollmentDate;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
 
@@ -49,6 +50,7 @@ public class StudentEnrollment {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Builder.Default // field defaults are ignored by @Builder otherwise (BUG-17)
     @Column(name = "previous_dues", nullable = false)
     private BigDecimal previousDues = BigDecimal.ZERO;
 }

@@ -33,6 +33,7 @@ public class FeeStructureService {
     private final MonthlyFeeStructureRepository structureRepository;
     private final AcademicYearRepository yearRepository;
     private final ClassRepository classRepository;
+    private final org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     // ─── Get fee categories ─────────────────────────────────────────────────
 
@@ -48,12 +49,15 @@ public class FeeStructureService {
     public FeeCategoryDto createCategory(CreateFeeCategoryRequest request) {
         UUID schoolId = TenantContext.getSchoolId();
         
+        String name = request.getName().trim();
+        requireUniqueCategoryName(schoolId, name, null);
+
         List<FeeCategory> existing = categoryRepository.findBySchoolIdAndActiveTrueOrderByDisplayOrderAsc(schoolId);
         int maxOrder = existing.isEmpty() ? 0 : existing.get(existing.size() - 1).getDisplayOrder();
         
         FeeCategory newCat = FeeCategory.builder()
                 .schoolId(schoolId)
-                .name(request.getName())
+                .name(name)
                 .displayOrder(maxOrder + 1)
                 .active(true)
                 .build();
@@ -67,8 +71,20 @@ public class FeeStructureService {
                 .filter(c -> c.getSchoolId().equals(schoolId))
                 .orElseThrow(() -> new BusinessException("Category not found"));
                 
-        category.setName(request.getName());
+        String name = request.getName().trim();
+        requireUniqueCategoryName(schoolId, name, id);
+        category.setName(name);
         return toFeeCategoryDto(categoryRepository.save(category));
+    }
+
+    /** Friendly error instead of a unique-constraint 500 (BUG-13). */
+    private void requireUniqueCategoryName(UUID schoolId, String name, UUID excludeId) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM fee_categories WHERE school_id = ? AND LOWER(name) = LOWER(?) AND (?::uuid IS NULL OR id <> ?::uuid)",
+                Integer.class, schoolId, name, excludeId, excludeId);
+        if (n != null && n > 0) {
+            throw new BusinessException("A fee category named \"" + name + "\" already exists.");
+        }
     }
 
     private FeeCategoryDto toFeeCategoryDto(FeeCategory c) {
@@ -195,6 +211,14 @@ public class FeeStructureService {
         UUID yearId = getCurrentYearId(schoolId);
         UUID updatedBy = getCurrentUserId();
 
+        // SEC-06: both ids must belong to this school, or the upsert would link to another school's data
+        classRepository.findById(req.getClassId())
+                .filter(c -> c.getSchoolId().equals(schoolId))
+                .orElseThrow(() -> new BusinessException("Invalid class"));
+        categoryRepository.findById(req.getFeeCategoryId())
+                .filter(c -> c.getSchoolId().equals(schoolId))
+                .orElseThrow(() -> new BusinessException("Fee category not found"));
+
         // Upsert: update if exists, insert if not
         int updated = structureRepository.updateAmount(
                 schoolId, yearId, req.getClassId(), req.getFeeCategoryId(),
@@ -215,6 +239,7 @@ public class FeeStructureService {
 
         // Return updated row
         FeeCategory cat = categoryRepository.findById(req.getFeeCategoryId())
+                .filter(c -> c.getSchoolId().equals(schoolId))
                 .orElseThrow(() -> new BusinessException("Fee category not found"));
 
         MonthlyFeeStructure saved = structureRepository
