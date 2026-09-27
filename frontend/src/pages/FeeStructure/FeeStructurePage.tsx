@@ -3,11 +3,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { IndianRupee, Edit3, Check, X, Loader2, BookOpen, Layers, Settings2, Plus } from 'lucide-react'
 import { feesApi, type ClassFeeStructureDto, type FeeStructureRowDto, type FeeCategoryDto } from '@/api/fees'
 import { formatCurrency, cn } from '@/lib/utils'
+import { settingsApi } from '@/api/settings'
 
 export function FeeStructurePage() {
   const queryClient = useQueryClient()
   const [selectedClass, setSelectedClass] = useState<ClassFeeStructureDto | null>(null)
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false)
+
+  // The year label used to be hard-coded as 2025-26 (BUG-20)
+  const { data: currentYear } = useQuery({
+    queryKey: ['currentAcademicYear'],
+    queryFn: settingsApi.getCurrentAcademicYear,
+  })
 
   const { data: structures, isLoading } = useQuery({
     queryKey: ['fee-structure'],
@@ -25,7 +32,7 @@ export function FeeStructurePage() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Fee Structure</h1>
-          <p className="text-slate-500 text-sm mt-1">Monthly fee amounts per class — Academic Year 2025-26</p>
+          <p className="text-slate-500 text-sm mt-1">Monthly fee amounts per class{currentYear ? ` — Academic Year ${currentYear.name}` : ''}</p>
         </div>
         <button
           onClick={() => setIsCategoryModalOpen(true)}

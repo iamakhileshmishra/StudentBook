@@ -69,6 +69,7 @@ public class FeeCollectionService {
                     .build();
         }
 
+        requireMonthInCurrentYear(schoolId, month, year);
         StudentEnrollment enrollment = findCurrentEnrollment(studentId, schoolId);
         List<MonthlyFeeStructure> rows =
                 feeStructureLookup.activeRows(schoolId, enrollment.getAcademicYearId(), enrollment.getClassId());
@@ -109,6 +110,7 @@ public class FeeCollectionService {
         validatePeriod(request.getMonth(), request.getYear());
 
         Student student = findStudent(request.getStudentId(), schoolId);
+        requireMonthInCurrentYear(schoolId, request.getMonth(), request.getYear());
         StudentEnrollment enrollment = findCurrentEnrollment(student.getId(), schoolId);
 
         // BUG-10: no new fees for students who have left or graduated
@@ -214,6 +216,27 @@ public class FeeCollectionService {
         return studentRepository.findById(studentId)
                 .filter(s -> s.getSchoolId().equals(schoolId))
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+    }
+
+    /**
+     * BUG-19: the month must fall inside the current academic year. Earlier months
+     * belong to a closed year (their dues were carried forward as arrears at
+     * promotion); charging them against the new enrollment double-bills.
+     */
+    private void requireMonthInCurrentYear(UUID schoolId, int month, int year) {
+        var row = jdbcTemplate.queryForList(
+                "SELECT start_date, end_date, name FROM academic_years WHERE school_id = ? AND is_current = true", schoolId);
+        if (row.isEmpty()) {
+            throw new BusinessException("No current academic year is configured.");
+        }
+        YearMonth start = YearMonth.from(((java.sql.Date) row.get(0).get("start_date")).toLocalDate());
+        YearMonth end = YearMonth.from(((java.sql.Date) row.get(0).get("end_date")).toLocalDate());
+        YearMonth period = YearMonth.of(year, month);
+        if (period.isBefore(start) || period.isAfter(end)) {
+            DateTimeFormatter f = DateTimeFormatter.ofPattern("MMM yyyy");
+            throw new BusinessException(period.format(f) + " is outside the current academic year "
+                    + row.get(0).get("name") + " (" + start.format(f) + " – " + end.format(f) + ").");
+        }
     }
 
     private StudentEnrollment findCurrentEnrollment(UUID studentId, UUID schoolId) {

@@ -11,7 +11,7 @@
 
 **Severity legend** — 🔴 Critical · 🟠 High · 🟡 Medium · 🔵 Low
 
-**Tokens (≈)** — approximate share of this session's token budget used to fix and test the item. Fixes were done in three groups, so each item shows its group's total divided by the items in it: **G1** auth/sessions ≈65k for 9 items · **G2** money/tenancy ≈76k for 19 items · **G3** access control/hardening ≈33k for 6 items. These are estimates from the remaining-budget counter, not exact per-item measurements.
+**Tokens (≈)** — approximate share of this session's token budget used to fix and test the item. Fixes were done in three groups, so each item shows its group's total divided by the items in it: **G1** auth/sessions ≈65k for 9 items · **G2** money/tenancy ≈76k for 19 items · **G3** access control/hardening ≈33k for 6 items · **G4** final regression pass, report update and the two issues it found ≈45k. These are estimates from the remaining-budget counter, not exact per-item measurements.
 
 ---
 
@@ -53,6 +53,8 @@
 | SEC-16 | 🔵 Low | Auth | Invalid/expired bearer token makes **public** endpoints return 401 | ✅ | Invalid/expired token → anonymous; Spring returns JSON 401 only where auth is required | ✅ Fixed · verified | ≈7k · G1 |
 | BUG-17 | 🟠 High | Students | **Adding a student always failed** (500): `@Builder` ignored entity defaults → `previous_dues` NULL (since `93d8f33`) | Found while fixing | `@Builder.Default` on all entity field defaults | ✅ Fixed · verified | ≈4k · G2 |
 | BUG-18 | 🟠 High | Fees | **Late fees were never applied**: JSONB rules read via a `(String)` cast inside a catch-all that failed silently | Found while fixing | Rules read as `late_fee_rules::text`; parse errors logged | ✅ Fixed · verified (NSNVPS now shows ₹100 at 18 days late) | ≈4k · G2 |
+| BUG-19 | 🟡 Medium | Fees | API accepted dues/collection for a month **outside the current academic year** (e.g. an old-year month after promotion), charging it to the new enrollment and clearing the carried arrears | Found in final regression | Dues and collection require the month to fall within the current year | ✅ Fixed · verified | ≈4k · G4 |
+| BUG-20 | 🔵 Low | UI | Fee Structure page header was hard-coded to "Academic Year 2025-26" | Found in final regression | Header shows the current year from the API | ✅ Fixed · verified | ≈2k · G4 |
 
 ---
 
@@ -273,6 +275,7 @@ With an invalid/expired `Authorization` header, `/api/auth/login` and `/api/auth
 | G1: authentication & sessions | `6c3e5a9` | SEC-02, BUG-01, SEC-03, SEC-04, SEC-07, SEC-10, SEC-11, SEC-14, SEC-16 | `V13__session_revocation.sql` |
 | G2: money correctness & tenant isolation | `193c583` | SEC-01, SEC-06, SEC-12, BUG-02 to BUG-15, BUG-17, BUG-18 | `V14__fee_integrity.sql` |
 | G3: access control & hardening | `ff2c439` + follow-up | SEC-05, SEC-08, SEC-09, SEC-13, SEC-15, BUG-16 (+ BUG-08 follow-up) | none |
+| G4: final regression | see `git log` | BUG-19, BUG-20 (found by re-testing every page in the browser) | none |
 
 **How it was verified.** Every fix was exercised against the running Docker stack, using test schools and data created for the purpose (Little Flower, Sunrise, Global Vision, St. Mary's, Blue Bells, plus a `FEE_COLLECTOR` test user). Selected evidence:
 
@@ -299,6 +302,7 @@ With an invalid/expired `Authorization` header, `/api/auth/login` and `/api/auth
   - **Refused with 403:** backup, promotion, fee edits, student create, profile edit and class create.
 - **SEC-08:** the 11th login in a minute → 429 with `Retry-After`; the 6th forgot-password → 429; the 6th sign-up in an hour → 429.
 - **SEC-09:** a second sign-up with the same email is refused; after the first sat unverified for 49 h, it was purged and the real owner could register.
+- **Final browser pass (test school):** every page loads, a fee was collected end to end with carried-forward arrears (₹600 + ₹4,000), and the receipt printed. The pass also found BUG-19 and BUG-20.
 - **Regression on the sample school (read-only):** every page endpoint returns 200, old receipts open, dues calculate for every active student, and the promotion preview loads.
 
 **Remaining / follow-ups**
