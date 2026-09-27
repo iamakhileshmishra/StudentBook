@@ -30,10 +30,11 @@ public class AuthService {
     private final SchoolLookupService schoolLookupService;
 
     @Transactional
-    public LoginResponse login(UUID schoolId, LoginRequest request, String ipAddress) {
+    public LoginResponse login(LoginRequest request, String ipAddress) {
         User user = userRepository
-                .findBySchoolIdAndUsername(schoolId, request.getUsername())
+                .findByUsernameIgnoreCase(request.getUsername().trim())
                 .orElseThrow(() -> new BusinessException("Invalid username or password"));
+        UUID schoolId = user.getSchoolId();
 
         if (!user.isActive()) {
             throw new BusinessException("Your account has been deactivated. Please contact the administrator.");
@@ -68,6 +69,7 @@ public class AuthService {
                         .role(user.getRole())
                         .schoolId(schoolId)
                         .schoolName(schoolName)
+                        .mustChangePassword(user.isMustChangePassword())
                         .build())
                 .build();
     }

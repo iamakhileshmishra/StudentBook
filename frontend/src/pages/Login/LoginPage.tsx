@@ -20,7 +20,7 @@ export function LoginPage() {
     try {
       const { data } = await authApi.login({ username, password })
       setAuth(data.accessToken, data.user)
-      navigate('/dashboard', { replace: true })
+      navigate(data.user.mustChangePassword ? '/set-password' : '/dashboard', { replace: true })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })
         ?.response?.data?.message ?? 'Login failed. Please try again.'
@@ -90,7 +90,7 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="username" className="label">Username</label>
+              <label htmlFor="username" className="label">User ID</label>
               <input
                 id="username"
                 type="text"
@@ -99,7 +99,7 @@ export function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="input-field"
-                placeholder="Enter your username"
+                placeholder="e.g. nsnvps.admin"
                 disabled={loading}
               />
             </div>
@@ -148,8 +148,9 @@ export function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-400 mt-8">
-            New Shanti Niketan Vidyapeeth Public School
+          <p className="text-center text-sm text-slate-500 mt-8">
+            New school?{' '}
+            <Link to="/register" className="text-brand-600 hover:text-brand-700 font-medium">Create an account</Link>
           </p>
           <p className="text-center text-sm mt-3">
             <Link to="/" className="text-brand-600 hover:text-brand-700 font-medium">← Back to home</Link>

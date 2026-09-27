@@ -13,6 +13,8 @@ Move items to **Done** (with the commit hash) as they land.
 | — | Dynamic late fee rules | `70b92fb` |
 | — | Fee structure redesign, auto-inheritance of structures into new years | `93d8f33` |
 | — | Create and rename fee categories | `206049e` |
+| — | Landing page and logout confirmation | `032e266` |
+| — | Multi-school self-registration: emailed User ID + temp password, forced password change | — |
 
 ## Backlog
 
@@ -37,6 +39,19 @@ Move items to **Done** (with the commit hash) as they land.
   and clerk, and restrict endpoints with `@PreAuthorize`.
 - [ ] **Automated tests.** There is no `backend/src/test` yet. Start with fee dues calculation,
   late fees, year-end promotion, auth lockout, and tenant isolation.
+
+### Multi-school follow-ups
+
+- [ ] **Protect the public sign-up endpoint** (`POST /api/auth/register`) with rate limiting and/or a
+  CAPTCHA, so it can't be used to mass-create schools or send spam email.
+- [ ] **Verify the owner's email** before activating the school (today, receiving the temp password
+  is the only proof of ownership).
+- [ ] **Enforce the first-login password change on the server.** Today the frontend redirects to
+  `/set-password`, but the API itself doesn't block other calls while `must_change_password` is true.
+- [ ] **Forgot password** via emailed reset link (mail sending now exists; Settings shows "Coming Soon").
+- [ ] **Configure a real SMTP provider** for production (`MAIL_*` in `.env`).
+- [ ] **Keep users signed in across page refreshes.** The access token is only held in memory, so a
+  refresh logs the user out even though a valid refresh-token cookie exists.
 
 ### Housekeeping
 

@@ -119,9 +119,14 @@ export function LandingPage() {
                 {label}
               </a>
             ))}
-            <Link to={authCta.to} className="btn-primary text-sm">
-              {authCta.label}
-            </Link>
+            <div className="flex items-center gap-3">
+              {!isAuthenticated && (
+                <Link to="/register" className="btn-secondary text-sm">Create Account</Link>
+              )}
+              <Link to={authCta.to} className="btn-primary text-sm">
+                {authCta.label}
+              </Link>
+            </div>
           </nav>
 
           <button
@@ -146,6 +151,9 @@ export function LandingPage() {
                 {label}
               </a>
             ))}
+            {!isAuthenticated && (
+              <Link to="/register" className="btn-secondary justify-center mt-2">Create Account</Link>
+            )}
             <Link to={authCta.to} className="btn-primary justify-center mt-2">
               {authCta.label}
             </Link>
@@ -171,15 +179,23 @@ export function LandingPage() {
               and tracking payments — built for real schools.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link to={authCta.to} className="btn-primary px-6 py-3 text-base">
-                {authCta.label} <ArrowRight className="w-4 h-4" />
-              </Link>
-              <a
-                href="#pricing"
-                className="px-6 py-3 rounded-lg text-base font-medium text-white border border-white/30 hover:bg-white/10 transition-colors"
-              >
-                View Pricing
-              </a>
+              {isAuthenticated ? (
+                <Link to="/dashboard" className="btn-primary px-6 py-3 text-base">
+                  Go to Dashboard <ArrowRight className="w-4 h-4" />
+                </Link>
+              ) : (
+                <>
+                  <Link to="/register" className="btn-primary px-6 py-3 text-base">
+                    Create Your School Account <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="px-6 py-3 rounded-lg text-base font-medium text-white border border-white/30 hover:bg-white/10 transition-colors"
+                  >
+                    Login
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -257,12 +273,16 @@ export function LandingPage() {
                       </li>
                     ))}
                   </ul>
-                  <a
-                    href="#contact"
-                    className={`mt-8 justify-center ${plan.highlighted ? 'btn-primary' : 'btn-secondary'}`}
-                  >
-                    {plan.price === 'Custom' ? 'Contact Sales' : 'Get Started'}
-                  </a>
+                  {plan.price === 'Custom' ? (
+                    <a href="#contact" className="mt-8 justify-center btn-secondary">Contact Sales</a>
+                  ) : (
+                    <Link
+                      to="/register"
+                      className={`mt-8 justify-center ${plan.highlighted ? 'btn-primary' : 'btn-secondary'}`}
+                    >
+                      Get Started
+                    </Link>
+                  )}
                 </div>
               ))}
             </div>

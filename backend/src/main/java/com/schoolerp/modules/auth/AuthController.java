@@ -2,9 +2,11 @@ package com.schoolerp.modules.auth;
 
 import com.schoolerp.modules.auth.dto.LoginRequest;
 import com.schoolerp.modules.auth.dto.LoginResponse;
+import com.schoolerp.modules.auth.dto.RegisterSchoolRequest;
+import com.schoolerp.modules.auth.dto.RegisterSchoolResponse;
 import com.schoolerp.modules.auth.service.AuthService;
+import com.schoolerp.modules.auth.service.SchoolRegistrationService;
 import com.schoolerp.shared.security.JwtUtil;
-import com.schoolerp.shared.security.TenantContext;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,11 +26,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private static final String SCHOOL_ID = "a0000000-0000-0000-0000-000000000001";
-    // Phase 1: single school. Phase 8: derive from subdomain/header.
-
     private final AuthService authService;
+    private final SchoolRegistrationService registrationService;
     private final JwtUtil jwtUtil;
+
+    @PostMapping("/register")
+    public ResponseEntity<RegisterSchoolResponse> register(@Valid @RequestBody RegisterSchoolRequest request) {
+        return ResponseEntity.ok(registrationService.register(request));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(
@@ -36,10 +41,9 @@ public class AuthController {
             HttpServletRequest httpRequest,
             HttpServletResponse httpResponse) {
 
-        UUID schoolId = UUID.fromString(SCHOOL_ID);
         String ipAddress = httpRequest.getRemoteAddr();
 
-        LoginResponse loginResponse = authService.login(schoolId, request, ipAddress);
+        LoginResponse loginResponse = authService.login(request, ipAddress);
 
         // Generate and set refresh token as httpOnly cookie
         String refreshToken = jwtUtil.generateRefreshToken(

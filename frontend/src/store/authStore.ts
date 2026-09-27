@@ -7,6 +7,7 @@ interface UserInfo {
   role: string
   schoolId: string
   schoolName: string
+  mustChangePassword: boolean
 }
 
 interface AuthState {
@@ -15,6 +16,7 @@ interface AuthState {
   isAuthenticated: boolean
   setAuth: (token: string, user: UserInfo) => void
   setAccessToken: (token: string) => void
+  clearMustChangePassword: () => void
   logout: () => void
 }
 
@@ -28,6 +30,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setAccessToken: (token) =>
     set({ accessToken: token }),
+
+  clearMustChangePassword: () =>
+    set((s) => ({ user: s.user ? { ...s.user, mustChangePassword: false } : null })),
 
   logout: () =>
     set({ accessToken: null, user: null, isAuthenticated: false }),

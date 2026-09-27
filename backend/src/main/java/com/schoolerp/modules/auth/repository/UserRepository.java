@@ -15,4 +15,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findBySchoolIdAndUsername(UUID schoolId, String username);
 
     boolean existsBySchoolIdAndUsername(UUID schoolId, String username);
+
+    // Usernames are unique platform-wide (V10), so login resolves the school from the user
+    Optional<User> findByUsernameIgnoreCase(String username);
+
+    boolean existsByUsernameIgnoreCase(String username);
 }

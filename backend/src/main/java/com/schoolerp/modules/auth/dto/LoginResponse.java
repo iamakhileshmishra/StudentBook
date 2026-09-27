@@ -20,5 +20,6 @@ public class LoginResponse {
         private String role;
         private UUID schoolId;
         private String schoolName;
+        private boolean mustChangePassword;
     }
 }

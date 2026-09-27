@@ -4,6 +4,8 @@ import { ProtectedRoute } from '@/router/ProtectedRoute'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { LandingPage } from '@/pages/Landing/LandingPage'
 import { LoginPage } from '@/pages/Login/LoginPage'
+import { SetPasswordPage } from '@/pages/Login/SetPasswordPage'
+import { RegisterPage } from '@/pages/Register/RegisterPage'
 import { DashboardPage } from '@/pages/Dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/Students/StudentsPage'
 import { StudentDetailPage } from '@/pages/Students/StudentDetailPage'
@@ -30,9 +32,11 @@ function App() {
           {/* Public */}
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>
+            <Route path="/set-password" element={<SetPasswordPage />} />
             <Route element={<AppLayout />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/students" element={<StudentsPage />} />

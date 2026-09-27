@@ -59,10 +59,28 @@ The frontend is built with React, Vite, and Tailwind CSS.
 
 The database is automatically seeded with an initial school profile, structure, and an administrator account when it starts up.
 
-You can log in to the dashboard using the following credentials:
+You can log in to the sample school's dashboard using the following credentials:
 
 - **Username:** `admin`
 - **Password:** `Admin@1234`
+
+---
+
+## 4. Registering a New School
+
+Any school can sign up from the landing page (**Create Account**, or go to `/register`).
+On success the owner is emailed:
+
+- a **User ID** built from the school's short name or initials, e.g. `nsnvps.admin`
+  (unique across the platform and permanent), and
+- a **temporary password**, which must be changed at first login.
+
+Everything entered at sign-up appears in **Settings → School Profile**. A current academic
+year and the default fee categories are created automatically; classes are added in Settings.
+
+**Emails in development** go to **Mailpit**, a local mail catcher started by Docker Compose;
+nothing is sent to real inboxes. Open **http://localhost:8025** to read them.
+For production, set the `MAIL_*` variables in `.env` (see `.env.template`) to a real SMTP provider.
 
 ---
 

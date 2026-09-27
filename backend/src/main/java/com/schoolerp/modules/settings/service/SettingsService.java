@@ -96,8 +96,17 @@ public class SettingsService {
             throw new BusinessException("Current password is incorrect");
         }
         
+        if (req.getNewPassword().length() < 8) {
+            throw new BusinessException("New password must be at least 8 characters");
+        }
+        if (req.getNewPassword().equals(req.getCurrentPassword())) {
+            throw new BusinessException("New password must be different from the current password");
+        }
+
         String newHash = passwordEncoder.encode(req.getNewPassword());
-        jdbcTemplate.update("UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?", newHash, userId);
+        jdbcTemplate.update(
+                "UPDATE users SET password_hash = ?, must_change_password = FALSE, updated_at = NOW() WHERE id = ?",
+                newHash, userId);
     }
 
     public AcademicYearDto getCurrentAcademicYear() {

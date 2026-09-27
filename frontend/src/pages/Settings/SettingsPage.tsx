@@ -6,6 +6,7 @@ import { academicApi } from '@/api/academic'
 import { AcademicYearPromotionModal } from './components/AcademicYearPromotionModal'
 import { ClassSettings } from './components/ClassSettings'
 import { BookOpen } from 'lucide-react'
+import { useAuthStore } from '@/store/authStore'
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'profile' | 'classes' | 'security' | 'system'>('profile')
@@ -330,10 +331,11 @@ function SecuritySettings() {
       setNewPassword('')
       setConfirmPassword('')
     },
-    onError: () => {
-      alert('Failed to change password. Please check your current password.')
+    onError: (err: any) => {
+      alert(err?.response?.data?.message ?? 'Failed to change password. Please check your current password.')
     }
   })
+  const username = useAuthStore((s) => s.user?.username)
 
   const handleUpdate = () => {
     if (newPassword !== confirmPassword) {
@@ -345,6 +347,12 @@ function SecuritySettings() {
 
   return (
     <div className="space-y-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <h2 className="text-lg font-bold text-slate-800 mb-2">User ID</h2>
+        <p className="text-sm text-slate-500 mb-4">Use this to sign in. It is assigned when your school registers and cannot be changed.</p>
+        <p className="inline-block px-3 py-2 bg-slate-100 rounded-lg font-mono text-sm text-slate-800">{username}</p>
+      </div>
+
       <div className="bg-white  rounded-2xl shadow-sm border border-slate-200  p-6">
         <h2 className="text-lg font-bold text-slate-800  mb-2">Change Password</h2>
         <p className="text-sm text-slate-500  mb-6">Ensure your account is using a long, random password to stay secure.</p>
