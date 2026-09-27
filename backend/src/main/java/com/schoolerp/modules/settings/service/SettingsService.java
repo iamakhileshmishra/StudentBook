@@ -14,6 +14,12 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.schoolerp.modules.settings.dto.LateFeeRuleDto;
 import com.schoolerp.modules.settings.dto.AcademicYearDto;
+import com.schoolerp.modules.auth.entity.User;
+import com.schoolerp.modules.auth.repository.UserRepository;
+import com.schoolerp.modules.auth.service.AuthService;
+import com.schoolerp.modules.auth.service.AuthService.AuthResult;
+import com.schoolerp.modules.auth.service.PasswordGuard;
+import jakarta.persistence.EntityManager;
 import com.schoolerp.modules.auth.service.OtpService;
 import com.schoolerp.modules.auth.service.OtpService.Purpose;
 import com.schoolerp.modules.auth.service.OtpService.Recipient;
@@ -31,6 +37,10 @@ public class SettingsService {
     private final PasswordEncoder passwordEncoder;
     private final ObjectMapper objectMapper;
     private final OtpService otpService;
+    private final PasswordGuard passwordGuard;
+    private final UserRepository userRepository;
+    private final AuthService authService;
+    private final EntityManager entityManager;
 
     public SchoolProfileDto getSchoolProfile() {
         UUID schoolId = TenantContext.getSchoolId();
@@ -96,7 +106,7 @@ public class SettingsService {
 
     // ─── Change password (confirmed by an emailed code) ─────────────────────
 
-    private record PasswordAccount(String passwordHash, boolean mustChangePassword, Recipient recipient) {}
+    private record PasswordAccount(User user, boolean mustChangePassword, Recipient recipient) {}
 
     /**
      * Step 1: check the current password and new-password rules, then email a
@@ -112,7 +122,10 @@ public class SettingsService {
         if (wait > 0) {
             throw new BusinessException("Please wait " + wait + " seconds before requesting a new code.");
         }
-        otpService.issue(account.recipient(), Purpose.PASSWORD_CHANGE);
+        if (otpService.dailyLimitReached(userId, Purpose.PASSWORD_CHANGE)) {
+            throw new BusinessException("Too many verification codes requested today. Please try again tomorrow.");
+        }
+        otpService.issue(account.recipient(), Purpose.PASSWORD_CHANGE, false);
         return Map.of(
                 "sentTo", OtpService.maskEmail(account.recipient().email()),
                 "resendAfterSeconds", OtpService.RESEND_COOLDOWN_SECONDS);
@@ -121,9 +134,12 @@ public class SettingsService {
     /**
      * Step 2: change the password. Requires the emailed code, except on first
      * login when the user is replacing the temporary password they were emailed.
+     *
+     * Bumps token_version so every other session is signed out (SEC-04), and
+     * returns fresh tokens so the current session carries on.
      */
     @Transactional(noRollbackFor = BusinessException.class)
-    public void changePassword(ChangePasswordRequest req, UUID userId) {
+    public AuthResult changePassword(ChangePasswordRequest req, UUID userId) {
         PasswordAccount account = loadPasswordAccount(userId);
         validatePasswordChange(req, account);
 
@@ -136,35 +152,36 @@ public class SettingsService {
         }
 
         String newHash = passwordEncoder.encode(req.getNewPassword());
-        jdbcTemplate.update(
-                "UPDATE users SET password_hash = ?, must_change_password = FALSE, updated_at = NOW() WHERE id = ?",
-                newHash, userId);
+        jdbcTemplate.update("""
+                UPDATE users SET password_hash = ?, must_change_password = FALSE,
+                                 token_version = token_version + 1, updated_at = NOW()
+                WHERE id = ?
+                """, newHash, userId);
 
         if (otpId != null) {
             otpService.consume(otpId);
             otpService.sendPasswordChangedNotice(account.recipient(), "changed from Settings");
         }
+
+        User updated = userRepository.findById(userId).orElseThrow();
+        entityManager.refresh(updated); // pick up the JDBC update above
+        return authService.issueTokens(updated);
     }
 
     private PasswordAccount loadPasswordAccount(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("User not found"));
         // Admins seeded without a personal email fall back to the school's email
-        return jdbcTemplate.queryForObject("""
-                SELECT u.password_hash, u.must_change_password, u.username, u.full_name,
-                       COALESCE(u.email, s.email) AS email
-                FROM users u JOIN schools s ON s.id = u.school_id
-                WHERE u.id = ?
-                """,
-                (rs, i) -> new PasswordAccount(
-                        rs.getString("password_hash"),
-                        rs.getBoolean("must_change_password"),
-                        new Recipient(userId, rs.getString("username"), rs.getString("full_name"), rs.getString("email"))),
-                userId);
+        String email = jdbcTemplate.queryForObject(
+                "SELECT COALESCE(u.email, s.email) FROM users u JOIN schools s ON s.id = u.school_id WHERE u.id = ?",
+                String.class, userId);
+        return new PasswordAccount(user, user.isMustChangePassword(),
+                new Recipient(userId, user.getUsername(), user.getFullName(), email));
     }
 
     private void validatePasswordChange(ChangePasswordRequest req, PasswordAccount account) {
-        if (!passwordEncoder.matches(req.getCurrentPassword(), account.passwordHash())) {
-            throw new BusinessException("Current password is incorrect");
-        }
+        // Shares the login lockout, so a hijacked session can't brute-force the password (SEC-11)
+        passwordGuard.verify(account.user(), req.getCurrentPassword(), "Current password is incorrect");
         if (req.getNewPassword().length() < 8) {
             throw new BusinessException("New password must be at least 8 characters");
         }

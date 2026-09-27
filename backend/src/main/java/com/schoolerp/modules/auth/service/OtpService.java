@@ -46,6 +46,7 @@ public class OtpService {
     public static final int EXPIRY_MINUTES = 10;
     public static final int RESEND_COOLDOWN_SECONDS = 60;
     private static final int MAX_ATTEMPTS = 5;
+    private static final int MAX_CODES_PER_DAY = 10;
     private static final String INVALID_CODE = "This code is invalid or has expired. Please request a new one.";
     private static final SecureRandom RANDOM = new SecureRandom();
 
@@ -68,8 +69,22 @@ public class OtpService {
         return secs == null ? 0 : Math.max(secs, 0);
     }
 
-    /** Generates, stores and emails a new code. Check cooldownRemaining() first. */
-    public void issue(Recipient to, Purpose purpose) {
+    /** Codes issued in the last 24 hours have reached the daily cap (SEC-08). */
+    public boolean dailyLimitReached(UUID userId, Purpose purpose) {
+        Integer n = jdbcTemplate.queryForObject("""
+                SELECT COUNT(*) FROM user_otps
+                WHERE user_id = ? AND purpose = ? AND created_at > NOW() - INTERVAL '24 hours'
+                """, Integer.class, userId, purpose.name());
+        return n != null && n >= MAX_CODES_PER_DAY;
+    }
+
+    /**
+     * Generates, stores and emails a new code. Check cooldownRemaining() and
+     * dailyLimitReached() first. With background=true the email is sent
+     * asynchronously and failures are only logged, so the caller's response time
+     * doesn't depend on SMTP (SEC-07).
+     */
+    public void issue(Recipient to, Purpose purpose, boolean background) {
         jdbcTemplate.update(
                 "UPDATE user_otps SET used_at = NOW() WHERE user_id = ? AND purpose = ? AND used_at IS NULL",
                 to.userId(), purpose.name());
@@ -81,7 +96,7 @@ public class OtpService {
                 """, to.userId(), purpose.name(), passwordEncoder.encode(code), EXPIRY_MINUTES);
 
         try {
-            sendCodeEmail(to, purpose, code);
+            sendCodeEmail(to, purpose, code, background);
         } catch (MailException e) {
             log.error("Failed to send {} code for user {}", purpose, to.username(), e);
             throw new BusinessException("We couldn't send the email right now. Please try again in a few minutes.");
@@ -156,7 +171,7 @@ public class OtpService {
         return visible + "***" + email.substring(at);
     }
 
-    private void sendCodeEmail(Recipient to, Purpose purpose, String code) {
+    private void sendCodeEmail(Recipient to, Purpose purpose, String code, boolean background) {
         String text = """
                 Hello %s,
 
@@ -180,6 +195,10 @@ public class OtpService {
                 </div>
                 """.formatted(HtmlUtils.htmlEscape(to.fullName()), purpose.action,
                 HtmlUtils.htmlEscape(to.username()), code, EXPIRY_MINUTES);
-        mailService.send(to.email(), purpose.subject, text, html);
+        if (background) {
+            mailService.sendAsync(to.email(), purpose.subject, text, html);
+        } else {
+            mailService.send(to.email(), purpose.subject, text, html);
+        }
     }
 }

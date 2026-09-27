@@ -43,12 +43,22 @@ public class PasswordResetService {
         Recipient account = findAccount(normalize(rawEmail));
         if (account == null) {
             log.info("Password reset requested for unregistered email");
+            equalizeTiming();
             return;
         }
-        if (otpService.cooldownRemaining(account.userId(), Purpose.PASSWORD_RESET) > 0) {
-            return; // a code was just sent; the UI enforces the same cooldown
+        if (otpService.cooldownRemaining(account.userId(), Purpose.PASSWORD_RESET) > 0
+                || otpService.dailyLimitReached(account.userId(), Purpose.PASSWORD_RESET)) {
+            // Silently skip (UI enforces the same cooldown); same timing as a real send
+            equalizeTiming();
+            return;
         }
-        otpService.issue(account, Purpose.PASSWORD_RESET);
+        // Issuing costs one BCrypt hash; the email itself goes out in the background (SEC-07)
+        otpService.issue(account, Purpose.PASSWORD_RESET, true);
+    }
+
+    /** One BCrypt hash, matching the cost of issuing a code, so every path takes as long. */
+    private void equalizeTiming() {
+        passwordEncoder.encode("timing-equalizer");
     }
 
     // ── Step 2: verify code ─────────────────────────────────────────────────
@@ -68,11 +78,13 @@ public class PasswordResetService {
         if (account == null) throw new BusinessException(INVALID_CODE);
         UUID otpId = otpService.verify(account.userId(), Purpose.PASSWORD_RESET, code);
 
-        // Also clears the first-login flag and any lockout: they've proven access to the email
+        // Also clears the first-login flag and any lockout: they've proven access to the email.
+        // Bumping token_version signs out every existing session, e.g. an attacker's (SEC-04).
         jdbcTemplate.update("""
                 UPDATE users
                 SET password_hash = ?, must_change_password = FALSE,
-                    failed_attempts = 0, locked_until = NULL, updated_at = NOW()
+                    failed_attempts = 0, locked_until = NULL,
+                    token_version = token_version + 1, updated_at = NOW()
                 WHERE id = ?
                 """, passwordEncoder.encode(newPassword), account.userId());
         otpService.consume(otpId);

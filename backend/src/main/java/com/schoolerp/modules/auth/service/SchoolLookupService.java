@@ -23,4 +23,18 @@ public class SchoolLookupService {
             return "Unknown School";
         }
     }
+
+    public boolean isActive(UUID schoolId) {
+        Boolean active = jdbcTemplate.query(
+                "SELECT is_active FROM schools WHERE id = ?",
+                rs -> rs.next() ? rs.getBoolean(1) : Boolean.FALSE,
+                schoolId);
+        return Boolean.TRUE.equals(active);
+    }
+
+    /** First successful sign-in proves the owner received the emailed credentials. */
+    public void markEmailVerified(UUID schoolId) {
+        jdbcTemplate.update(
+                "UPDATE schools SET email_verified_at = NOW() WHERE id = ? AND email_verified_at IS NULL", schoolId);
+    }
 }

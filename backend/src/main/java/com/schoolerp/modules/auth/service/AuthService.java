@@ -9,10 +9,12 @@ import com.schoolerp.shared.security.JwtUtil;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -21,46 +23,62 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AuthService {
 
-    private static final int MAX_FAILED_ATTEMPTS = 5;
-    private static final int LOCKOUT_MINUTES = 5;
+    private static final String INVALID_CREDENTIALS = "Invalid username or password";
+    private static final String SESSION_EXPIRED = "Your session has expired. Please sign in again.";
 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordGuard passwordGuard;
     private final SchoolLookupService schoolLookupService;
+    private final JdbcTemplate jdbcTemplate;
 
-    @Transactional
-    public LoginResponse login(LoginRequest request, String ipAddress) {
-        User user = userRepository
-                .findByUsernameIgnoreCase(request.getUsername().trim())
-                .orElseThrow(() -> new BusinessException("Invalid username or password"));
-        UUID schoolId = user.getSchoolId();
+    /** Hash of a random value, compared against for unknown usernames so timing matches (SEC-07). */
+    private volatile String dummyHash;
 
+    /** Response body plus the refresh token the controller puts in the cookie. */
+    public record AuthResult(LoginResponse body, String refreshToken) {}
+
+    @Transactional(noRollbackFor = BusinessException.class)
+    public AuthResult login(LoginRequest request, String ipAddress) {
+        User user = userRepository.findByUsernameIgnoreCase(request.getUsername().trim()).orElse(null);
+        if (user == null) {
+            // Same BCrypt cost as a real check so response time doesn't reveal unknown usernames
+            passwordEncoder.matches(request.getPassword(), dummyHash());
+            throw new BusinessException(INVALID_CREDENTIALS);
+        }
+
+        // Counts wrong passwords and locks after 5 (committed even though we then throw)
+        passwordGuard.verify(user, request.getPassword(), INVALID_CREDENTIALS);
+
+        // Only revealed to someone who knows the password
         if (!user.isActive()) {
             throw new BusinessException("Your account has been deactivated. Please contact the administrator.");
         }
-
-        if (user.isAccountLocked()) {
-            throw new BusinessException("Account is temporarily locked due to too many failed attempts. Please try again later.");
+        if (!schoolLookupService.isActive(user.getSchoolId())) {
+            throw new BusinessException("Your school's account is inactive. Please contact support.");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            handleFailedLogin(user);
-            throw new BusinessException("Invalid username or password");
-        }
-
-        // Successful login — reset failed attempts
         user.setFailedAttempts(0);
         user.setLockedUntil(null);
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        String schoolName = schoolLookupService.getSchoolName(schoolId);
-        String accessToken = jwtUtil.generateAccessToken(user.getId(), schoolId, user.getRole(), user.getFullName());
+        // Signing in with the emailed temporary password proves the school owns its email (SEC-09)
+        schoolLookupService.markEmailVerified(user.getSchoolId());
 
-        log.info("User '{}' logged in from school '{}'", user.getUsername(), schoolId);
+        log.info("User '{}' logged in from school '{}' ({})", user.getUsername(), user.getSchoolId(), ipAddress);
+        return issueTokens(user);
+    }
 
-        return LoginResponse.builder()
+    /** Access + refresh tokens and the user payload for a fresh session. */
+    public AuthResult issueTokens(User user) {
+        UUID schoolId = user.getSchoolId();
+        String accessToken = jwtUtil.generateAccessToken(
+                user.getId(), schoolId, user.getRole(), user.getFullName(), user.getTokenVersion());
+        String refreshToken = jwtUtil.generateRefreshToken(user.getId(), schoolId, user.getTokenVersion());
+
+        LoginResponse body = LoginResponse.builder()
                 .accessToken(accessToken)
                 .user(LoginResponse.UserInfo.builder()
                         .id(user.getId())
@@ -68,40 +86,62 @@ public class AuthService {
                         .fullName(user.getFullName())
                         .role(user.getRole())
                         .schoolId(schoolId)
-                        .schoolName(schoolName)
+                        .schoolName(schoolLookupService.getSchoolName(schoolId))
                         .mustChangePassword(user.isMustChangePassword())
                         .build())
                 .build();
+        return new AuthResult(body, refreshToken);
     }
 
-    public String refreshAccessToken(String refreshToken) {
-        if (!jwtUtil.isTokenValid(refreshToken)) {
-            throw new BusinessException("Invalid or expired refresh token");
+    /**
+     * Exchanges a valid refresh token for a new session. Rejects revoked tokens (logout),
+     * tokens from before a password change/reset, and deactivated users or schools.
+     */
+    @Transactional(readOnly = true)
+    public AuthResult refresh(String refreshToken) {
+        Claims claims = jwtUtil.parseOrNull(refreshToken);
+        if (claims == null || !"REFRESH".equals(claims.get("type", String.class))) {
+            throw new BusinessException(SESSION_EXPIRED);
         }
-        Claims claims = jwtUtil.validateAndExtractClaims(refreshToken);
-        if (!"REFRESH".equals(claims.get("type", String.class))) {
-            throw new BusinessException("Invalid token type");
-        }
-        UUID userId = UUID.fromString(claims.getSubject());
-        UUID schoolId = UUID.fromString(claims.get("schoolId", String.class));
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
-
-        if (!user.isActive()) {
-            throw new BusinessException("Account is deactivated");
+        if (claims.getId() != null && isRevoked(claims.getId())) {
+            throw new BusinessException(SESSION_EXPIRED);
         }
 
-        return jwtUtil.generateAccessToken(user.getId(), schoolId, user.getRole(), user.getFullName());
+        User user = userRepository.findById(UUID.fromString(claims.getSubject()))
+                .orElseThrow(() -> new BusinessException(SESSION_EXPIRED));
+        if (!user.isActive() || !schoolLookupService.isActive(user.getSchoolId())
+                || JwtUtil.tokenVersion(claims) != user.getTokenVersion()) {
+            throw new BusinessException(SESSION_EXPIRED);
+        }
+        return issueTokens(user);
     }
 
-    private void handleFailedLogin(User user) {
-        int attempts = user.getFailedAttempts() + 1;
-        user.setFailedAttempts(attempts);
-        if (attempts >= MAX_FAILED_ATTEMPTS) {
-            user.setLockedUntil(Instant.now().plusSeconds(LOCKOUT_MINUTES * 60L));
-            log.warn("Account '{}' locked after {} failed attempts", user.getUsername(), attempts);
+    /** Revokes this refresh token so it can't be replayed after logout (SEC-04). */
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null) return;
+        Claims claims = jwtUtil.parseOrNull(refreshToken);
+        if (claims == null || claims.getId() == null) return;
+
+        jdbcTemplate.update("DELETE FROM revoked_refresh_tokens WHERE expires_at < NOW()");
+        jdbcTemplate.update("""
+                INSERT INTO revoked_refresh_tokens (jti, user_id, expires_at) VALUES (?, ?, ?)
+                ON CONFLICT (jti) DO NOTHING
+                """,
+                UUID.fromString(claims.getId()), UUID.fromString(claims.getSubject()),
+                Timestamp.from(claims.getExpiration().toInstant()));
+    }
+
+    private boolean isRevoked(String jti) {
+        Integer n = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM revoked_refresh_tokens WHERE jti = ?", Integer.class, UUID.fromString(jti));
+        return n != null && n > 0;
+    }
+
+    private String dummyHash() {
+        if (dummyHash == null) {
+            dummyHash = passwordEncoder.encode(UUID.randomUUID().toString());
         }
-        userRepository.save(user);
+        return dummyHash;
     }
 }

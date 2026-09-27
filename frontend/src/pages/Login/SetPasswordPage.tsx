@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 /** First-login screen for accounts created with an emailed temporary password. */
 export function SetPasswordPage() {
   const user = useAuthStore((s) => s.user)
-  const clearMustChangePassword = useAuthStore((s) => s.clearMustChangePassword)
+  const setAuth = useAuthStore((s) => s.setAuth)
   const navigate = useNavigate()
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -33,8 +33,8 @@ export function SetPasswordPage() {
     }
     setLoading(true)
     try {
-      await settingsApi.changePassword({ currentPassword, newPassword })
-      clearMustChangePassword()
+      const session = await settingsApi.changePassword({ currentPassword, newPassword })
+      setAuth(session.accessToken, session.user)
       navigate('/dashboard', { replace: true })
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })

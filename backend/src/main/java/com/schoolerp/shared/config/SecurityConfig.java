@@ -44,6 +44,7 @@ public class SecurityConfig {
                                 "/api/auth/forgot-password",
                                 "/api/auth/forgot-password/**",
                                 "/api/auth/refresh",
+                                "/api/auth/logout", // acts on the SameSite=Strict refresh cookie only
                                 "/api/health",
                                 "/actuator/**",
                                 "/swagger-ui/**",
@@ -51,9 +52,24 @@ public class SecurityConfig {
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
+                // JSON 401/403 (the default for stateless APIs is a bare 403 for both), so the
+                // frontend can tell "session expired → refresh" apart from "not allowed"
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((req, res, e) -> writeJson(res, 401,
+                                "Unauthorized", "Authentication required"))
+                        .accessDeniedHandler((req, res, e) -> writeJson(res, 403,
+                                "Forbidden", "You do not have permission to perform this action"))
+                )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    private static void writeJson(jakarta.servlet.http.HttpServletResponse res, int status, String error, String message)
+            throws java.io.IOException {
+        res.setStatus(status);
+        res.setContentType("application/json");
+        res.getWriter().write("{\"status\":" + status + ",\"error\":\"" + error + "\",\"message\":\"" + message + "\"}");
     }
 
     @Bean

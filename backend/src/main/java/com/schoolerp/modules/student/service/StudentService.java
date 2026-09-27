@@ -37,7 +37,7 @@ public class StudentService {
     private final SectionRepository sectionRepository;
     private final JdbcTemplate jdbcTemplate;
     private final com.schoolerp.modules.auth.repository.UserRepository userRepository;
-    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
+    private final com.schoolerp.modules.auth.service.PasswordGuard passwordGuard;
 
     // ─── Search / List ────────────────────────────────────────────────────────
 
@@ -306,9 +306,8 @@ public class StudentService {
         com.schoolerp.modules.auth.entity.User admin = userRepository.findById(adminUserId)
                 .orElseThrow(() -> new BusinessException("Admin user not found"));
                 
-        if (!passwordEncoder.matches(adminPassword, admin.getPasswordHash())) {
-            throw new BusinessException("Invalid admin password");
-        }
+        // Shares the login lockout so this can't be used to brute-force the password (SEC-11)
+        passwordGuard.verify(admin, adminPassword, "Invalid admin password");
         
         Student student = studentRepository.findById(studentId)
                 .filter(s -> s.getSchoolId().equals(schoolId))

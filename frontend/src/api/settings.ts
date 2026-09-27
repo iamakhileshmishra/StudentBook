@@ -1,3 +1,4 @@
+import type { LoginResponse } from './auth'
 import api from './axios'
 
 export interface LateFeeRule {
@@ -85,8 +86,9 @@ export const settingsApi = {
   requestPasswordChangeCode: (data: ChangePasswordRequest) =>
     api.post<PasswordChangeCodeResponse>('/settings/change-password/request-otp', data).then(res => res.data),
 
+  /** Returns fresh tokens: other sessions are signed out, this one continues */
   changePassword: (data: ChangePasswordRequest) =>
-    api.post('/settings/change-password', data).then(res => res.data),
+    api.post<LoginResponse>('/settings/change-password', data).then(res => res.data),
 
   getCurrentAcademicYear: () =>
     api.get<AcademicYearDto>('/settings/academic-years/current').then(res => res.data),

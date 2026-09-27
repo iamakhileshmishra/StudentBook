@@ -12,6 +12,10 @@ import com.schoolerp.modules.settings.dto.AcademicYearDto;
 import com.schoolerp.modules.settings.dto.PromotionDataResponse;
 import com.schoolerp.modules.settings.dto.PromotionRequest;
 import com.schoolerp.modules.settings.service.AcademicYearPromotionService;
+import com.schoolerp.modules.auth.dto.LoginResponse;
+import com.schoolerp.modules.auth.service.AuthService.AuthResult;
+import com.schoolerp.shared.security.RefreshCookieService;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,6 +26,7 @@ public class SettingsController {
 
     private final SettingsService settingsService;
     private final AcademicYearPromotionService promotionService;
+    private final RefreshCookieService refreshCookie;
 
     @GetMapping("/school")
     public ResponseEntity<SchoolProfileDto> getSchoolProfile() {
@@ -40,10 +45,13 @@ public class SettingsController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<LoginResponse> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request, HttpServletResponse response) {
         UUID currentUserId = UUID.fromString((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-        settingsService.changePassword(request, currentUserId);
-        return ResponseEntity.ok().build();
+        // Other sessions are signed out; this one continues with fresh tokens
+        AuthResult result = settingsService.changePassword(request, currentUserId);
+        refreshCookie.set(response, result.refreshToken());
+        return ResponseEntity.ok(result.body());
     }
 
     @GetMapping("/academic-years/current")

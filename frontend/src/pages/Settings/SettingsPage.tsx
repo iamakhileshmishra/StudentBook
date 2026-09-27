@@ -355,7 +355,9 @@ function SecuritySettings() {
 
   const confirmChange = useMutation({
     mutationFn: () => settingsApi.changePassword({ currentPassword, newPassword, otp }),
-    onSuccess: () => {
+    onSuccess: (session) => {
+      // Password change signs out other sessions; keep this one with the new tokens
+      setAuth(session.accessToken, session.user)
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -368,6 +370,7 @@ function SecuritySettings() {
   })
 
   const username = useAuthStore((s) => s.user?.username)
+  const setAuth = useAuthStore((s) => s.setAuth)
 
   const handleSendCode = () => {
     setError('')
