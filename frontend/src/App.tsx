@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/AppLayout'
 import { LandingPage } from '@/pages/Landing/LandingPage'
 import { LoginPage } from '@/pages/Login/LoginPage'
 import { SetPasswordPage } from '@/pages/Login/SetPasswordPage'
+import { ForgotPasswordPage } from '@/pages/Login/ForgotPasswordPage'
 import { RegisterPage } from '@/pages/Register/RegisterPage'
 import { DashboardPage } from '@/pages/Dashboard/DashboardPage'
 import { StudentsPage } from '@/pages/Students/StudentsPage'
@@ -33,6 +34,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>

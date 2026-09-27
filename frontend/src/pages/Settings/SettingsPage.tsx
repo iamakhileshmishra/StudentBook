@@ -392,10 +392,10 @@ function SecuritySettings() {
 
       <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
         <h2 className="text-lg font-bold text-slate-800 mb-2">Password Recovery</h2>
-        <p className="text-sm text-slate-600 mb-4">Set up an email address to receive password reset links if you forget your password.</p>
-        <span className="inline-block px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full">
-          Coming Soon
-        </span>
+        <p className="text-sm text-slate-600">
+          If you forget your password, use <strong>Forgot password?</strong> on the login page. A verification code
+          will be sent to your school's registered email address (School Profile → Email Address), so keep it up to date.
+        </p>
       </div>
     </div>
   )

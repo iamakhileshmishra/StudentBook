@@ -48,4 +48,14 @@ export const authApi = {
 
   refresh: () =>
     api.post<{ accessToken: string }>('/auth/refresh'),
+
+  // Forgot password: email → 6-digit code → new password
+  forgotPassword: (email: string) =>
+    api.post<{ message: string }>('/auth/forgot-password', { email }).then((r) => r.data),
+
+  verifyResetCode: (email: string, otp: string) =>
+    api.post('/auth/forgot-password/verify', { email, otp }),
+
+  resetPassword: (email: string, otp: string, newPassword: string) =>
+    api.post('/auth/forgot-password/reset', { email, otp, newPassword }),
 }

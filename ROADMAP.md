@@ -14,7 +14,8 @@ Move items to **Done** (with the commit hash) as they land.
 | — | Fee structure redesign, auto-inheritance of structures into new years | `93d8f33` |
 | — | Create and rename fee categories | `206049e` |
 | — | Landing page and logout confirmation | `032e266` |
-| — | Multi-school self-registration: emailed User ID + temp password, forced password change | — |
+| — | Multi-school self-registration: emailed User ID + temp password, forced password change | `8c3de59` |
+| — | Forgot password with emailed 6-digit code (OTP) | — |
 
 ## Backlog
 
@@ -42,13 +43,13 @@ Move items to **Done** (with the commit hash) as they land.
 
 ### Multi-school follow-ups
 
-- [ ] **Protect the public sign-up endpoint** (`POST /api/auth/register`) with rate limiting and/or a
-  CAPTCHA, so it can't be used to mass-create schools or send spam email.
+- [ ] **Protect the public endpoints** (`POST /api/auth/register`, `/api/auth/forgot-password`) with
+  per-IP rate limiting and/or a CAPTCHA, so they can't be used to mass-create schools or send spam
+  email. (Reset codes already have a 60 s resend cooldown and 5 attempts per code.)
 - [ ] **Verify the owner's email** before activating the school (today, receiving the temp password
   is the only proof of ownership).
 - [ ] **Enforce the first-login password change on the server.** Today the frontend redirects to
   `/set-password`, but the API itself doesn't block other calls while `must_change_password` is true.
-- [ ] **Forgot password** via emailed reset link (mail sending now exists; Settings shows "Coming Soon").
 - [ ] **Configure a real SMTP provider** for production (`MAIL_*` in `.env`).
 - [ ] **Keep users signed in across page refreshes.** The access token is only held in memory, so a
   refresh logs the user out even though a valid refresh-token cookie exists.

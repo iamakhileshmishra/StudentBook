@@ -1,6 +1,10 @@
 package com.schoolerp.modules.auth;
 
+import com.schoolerp.modules.auth.dto.ForgotPasswordRequest;
 import com.schoolerp.modules.auth.dto.LoginRequest;
+import com.schoolerp.modules.auth.dto.ResetPasswordRequest;
+import com.schoolerp.modules.auth.dto.VerifyOtpRequest;
+import com.schoolerp.modules.auth.service.PasswordResetService;
 import com.schoolerp.modules.auth.dto.LoginResponse;
 import com.schoolerp.modules.auth.dto.RegisterSchoolRequest;
 import com.schoolerp.modules.auth.dto.RegisterSchoolResponse;
@@ -28,11 +32,34 @@ public class AuthController {
 
     private final AuthService authService;
     private final SchoolRegistrationService registrationService;
+    private final PasswordResetService passwordResetService;
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<RegisterSchoolResponse> register(@Valid @RequestBody RegisterSchoolRequest request) {
         return ResponseEntity.ok(registrationService.register(request));
+    }
+
+    // ── Forgot password (email + OTP) ───────────────────────────────────────
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.sendResetCode(request.getEmail());
+        // Same response whether or not the email is registered
+        return ResponseEntity.ok(Map.of("message",
+                "If an account is registered with this email, a verification code has been sent."));
+    }
+
+    @PostMapping("/forgot-password/verify")
+    public ResponseEntity<Void> verifyResetCode(@Valid @RequestBody VerifyOtpRequest request) {
+        passwordResetService.verifyCode(request.getEmail(), request.getOtp());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/forgot-password/reset")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")
