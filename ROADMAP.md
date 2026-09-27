@@ -15,7 +15,8 @@ Move items to **Done** (with the commit hash) as they land.
 | — | Create and rename fee categories | `206049e` |
 | — | Landing page and logout confirmation | `032e266` |
 | — | Multi-school self-registration: emailed User ID + temp password, forced password change | `8c3de59` |
-| — | Forgot password with emailed 6-digit code (OTP) | — |
+| — | Forgot password with emailed 6-digit code (OTP) | `f5a96f0` |
+| — | Settings password change confirmed by emailed OTP | — |
 
 ## Backlog
 

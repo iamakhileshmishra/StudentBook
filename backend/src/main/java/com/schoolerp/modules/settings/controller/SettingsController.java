@@ -12,6 +12,7 @@ import com.schoolerp.modules.settings.dto.AcademicYearDto;
 import com.schoolerp.modules.settings.dto.PromotionDataResponse;
 import com.schoolerp.modules.settings.dto.PromotionRequest;
 import com.schoolerp.modules.settings.service.AcademicYearPromotionService;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -30,6 +31,12 @@ public class SettingsController {
     @PutMapping("/school")
     public ResponseEntity<SchoolProfileDto> updateSchoolProfile(@Valid @RequestBody SchoolProfileDto request) {
         return ResponseEntity.ok(settingsService.updateSchoolProfile(request));
+    }
+
+    @PostMapping("/change-password/request-otp")
+    public ResponseEntity<Map<String, Object>> requestPasswordChangeCode(@Valid @RequestBody ChangePasswordRequest request) {
+        UUID currentUserId = UUID.fromString((String) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        return ResponseEntity.ok(settingsService.requestPasswordChangeCode(request, currentUserId));
     }
 
     @PostMapping("/change-password")

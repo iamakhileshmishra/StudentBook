@@ -66,6 +66,13 @@ export interface SchoolProfileDto {
 export interface ChangePasswordRequest {
   currentPassword: string
   newPassword: string
+  /** Emailed code; not needed on first login (replacing a temporary password) */
+  otp?: string
+}
+
+export interface PasswordChangeCodeResponse {
+  sentTo: string
+  resendAfterSeconds: number
 }
 
 export const settingsApi = {
@@ -74,6 +81,9 @@ export const settingsApi = {
     
   updateSchoolProfile: (data: SchoolProfileDto) =>
     api.put<SchoolProfileDto>('/settings/school', data).then(res => res.data),
+
+  requestPasswordChangeCode: (data: ChangePasswordRequest) =>
+    api.post<PasswordChangeCodeResponse>('/settings/change-password/request-otp', data).then(res => res.data),
 
   changePassword: (data: ChangePasswordRequest) =>
     api.post('/settings/change-password', data).then(res => res.data),

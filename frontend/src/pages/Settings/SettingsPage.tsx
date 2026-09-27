@@ -322,27 +322,71 @@ function SecuritySettings() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  // Changing the password is a two-step flow: send an emailed code, then confirm with it
+  const [step, setStep] = useState<'form' | 'otp'>('form')
+  const [otp, setOtp] = useState('')
+  const [sentTo, setSentTo] = useState('')
+  const [cooldown, setCooldown] = useState(0)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
-  const mutation = useMutation({
-    mutationFn: settingsApi.changePassword,
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
+
+  const apiError = (err: any, fallback: string) => {
+    const data = err?.response?.data
+    return (data?.fieldErrors && Object.values(data.fieldErrors)[0]) || data?.message || fallback
+  }
+
+  const requestCode = useMutation({
+    mutationFn: () => settingsApi.requestPasswordChangeCode({ currentPassword, newPassword }),
+    onSuccess: (data) => {
+      setSentTo(data.sentTo)
+      setCooldown(data.resendAfterSeconds)
+      setOtp('')
+      setError('')
+      setStep('otp')
+    },
+    onError: (err: any) => setError(apiError(err, 'Could not send the verification code.')),
+  })
+
+  const confirmChange = useMutation({
+    mutationFn: () => settingsApi.changePassword({ currentPassword, newPassword, otp }),
     onSuccess: () => {
-      alert('Password changed successfully!')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      setOtp('')
+      setStep('form')
+      setError('')
+      setSuccess('Password changed successfully. A confirmation has been sent to your email.')
     },
-    onError: (err: any) => {
-      alert(err?.response?.data?.message ?? 'Failed to change password. Please check your current password.')
-    }
+    onError: (err: any) => setError(apiError(err, 'Could not change the password.')),
   })
+
   const username = useAuthStore((s) => s.user?.username)
 
-  const handleUpdate = () => {
-    if (newPassword !== confirmPassword) {
-      alert("New passwords do not match!")
+  const handleSendCode = () => {
+    setError('')
+    setSuccess('')
+    if (newPassword.length < 8) {
+      setError('New password must be at least 8 characters')
       return
     }
-    mutation.mutate({ currentPassword, newPassword })
+    if (newPassword !== confirmPassword) {
+      setError('New passwords do not match')
+      return
+    }
+    requestCode.mutate()
+  }
+
+  const handleCancel = () => {
+    setStep('form')
+    setOtp('')
+    setError('')
   }
 
   return (
@@ -355,39 +399,100 @@ function SecuritySettings() {
 
       <div className="bg-white  rounded-2xl shadow-sm border border-slate-200  p-6">
         <h2 className="text-lg font-bold text-slate-800  mb-2">Change Password</h2>
-        <p className="text-sm text-slate-500  mb-6">Ensure your account is using a long, random password to stay secure.</p>
-        
-        <div className="space-y-4 max-w-md">
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ">Current Password</label>
-            <input 
-              type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
-            />
+        <p className="text-sm text-slate-500  mb-6">
+          Ensure your account is using a long, random password to stay secure. For your protection, we'll email
+          you a verification code to confirm the change.
+        </p>
+
+        {success && (
+          <div className="max-w-md mb-4 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3">
+            <p className="text-emerald-700 text-sm">{success}</p>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ">New Password</label>
-            <input 
-              type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
-            />
+        )}
+
+        {step === 'form' ? (
+          <div className="space-y-4 max-w-md">
+            <div className="space-y-1.5">
+              <label htmlFor="sec-current" className="text-sm font-medium text-slate-700 ">Current Password</label>
+              <input
+                id="sec-current" type="password" autoComplete="current-password"
+                value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="sec-new" className="text-sm font-medium text-slate-700 ">New Password</label>
+              <input
+                id="sec-new" type="password" autoComplete="new-password"
+                value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
+              />
+              <p className="text-xs text-slate-500">At least 8 characters.</p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="sec-confirm" className="text-sm font-medium text-slate-700 ">Confirm New Password</label>
+              <input
+                id="sec-confirm" type="password" autoComplete="new-password"
+                value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <button
+              onClick={handleSendCode}
+              disabled={requestCode.isPending || !currentPassword || !newPassword || !confirmPassword}
+              className="mt-4 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+            >
+              {requestCode.isPending ? 'Sending code...' : 'Update Password'}
+            </button>
           </div>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-slate-700 ">Confirm New Password</label>
-            <input 
-              type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-white  border border-slate-300  rounded-lg focus:outline-none focus:border-brand-500 "
-            />
+        ) : (
+          <div className="space-y-4 max-w-md">
+            <div className="px-4 py-3 rounded-lg bg-brand-50 border border-brand-100">
+              <p className="text-sm text-slate-700">
+                We've sent a 6-digit verification code to <strong>{sentTo}</strong>. Enter it below to confirm
+                your new password. The code expires in 10 minutes.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="sec-otp" className="text-sm font-medium text-slate-700">Verification Code</label>
+              <input
+                id="sec-otp" inputMode="numeric" autoComplete="one-time-code" autoFocus maxLength={6}
+                placeholder="••••••"
+                value={otp} onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg focus:outline-none focus:border-brand-500 text-center text-2xl font-mono tracking-[0.5em]"
+              />
+            </div>
+
+            {error && <p className="text-sm text-red-600">{error}</p>}
+
+            <div className="flex flex-wrap items-center gap-3 mt-4">
+              <button
+                onClick={() => { setError(''); confirmChange.mutate() }}
+                disabled={confirmChange.isPending || otp.length !== 6}
+                className="px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {confirmChange.isPending ? 'Confirming...' : 'Confirm Password Change'}
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={confirmChange.isPending}
+                className="px-4 py-2.5 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+            <button
+              onClick={() => { setError(''); requestCode.mutate() }}
+              disabled={requestCode.isPending || cooldown > 0}
+              className="text-sm font-medium text-brand-600 hover:text-brand-700 disabled:text-slate-400 disabled:cursor-not-allowed"
+            >
+              {cooldown > 0 ? `Resend code in ${cooldown}s` : requestCode.isPending ? 'Sending...' : 'Resend code'}
+            </button>
           </div>
-          
-          <button 
-            onClick={handleUpdate}
-            disabled={mutation.isPending || !currentPassword || !newPassword}
-            className="mt-4 px-5 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
-          >
-            {mutation.isPending ? 'Updating...' : 'Update Password'}
-          </button>
-        </div>
+        )}
       </div>
 
       <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
