@@ -16,8 +16,11 @@ import {
   Menu,
   X,
   ArrowRight,
+  LogOut,
 } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
+import api from '@/api/axios'
+import { LogoutConfirmModal } from '@/components/layout/LogoutConfirmModal'
 
 // TODO: replace with real contact details before going live
 const CONTACT = {
@@ -95,7 +98,17 @@ const PLANS = [
 
 export function LandingPage() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
+  const logout = useAuthStore((s) => s.logout)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false)
+
+  // Signed-in visitors (session restored from the refresh cookie) can sign out here too
+  const handleLogout = async () => {
+    try { await api.post('/auth/logout') } catch { /* ignore */ }
+    logout()
+    setShowLogoutConfirm(false)
+    setMenuOpen(false)
+  }
 
   const authCta = isAuthenticated
     ? { to: '/dashboard', label: 'Go to Dashboard' }
@@ -120,7 +133,11 @@ export function LandingPage() {
               </a>
             ))}
             <div className="flex items-center gap-3">
-              {!isAuthenticated && (
+              {isAuthenticated ? (
+                <button onClick={() => setShowLogoutConfirm(true)} className="btn-secondary text-sm">
+                  <LogOut className="w-4 h-4" /> Logout
+                </button>
+              ) : (
                 <Link to="/register" className="btn-secondary text-sm">Create Account</Link>
               )}
               <Link to={authCta.to} className="btn-primary text-sm">
@@ -151,7 +168,11 @@ export function LandingPage() {
                 {label}
               </a>
             ))}
-            {!isAuthenticated && (
+            {isAuthenticated ? (
+              <button onClick={() => setShowLogoutConfirm(true)} className="btn-secondary w-full justify-center mt-2">
+                <LogOut className="w-4 h-4" /> Logout
+              </button>
+            ) : (
               <Link to="/register" className="btn-secondary justify-center mt-2">Create Account</Link>
             )}
             <Link to={authCta.to} className="btn-primary justify-center mt-2">
@@ -160,6 +181,10 @@ export function LandingPage() {
           </nav>
         )}
       </header>
+
+      {showLogoutConfirm && (
+        <LogoutConfirmModal onConfirm={handleLogout} onClose={() => setShowLogoutConfirm(false)} />
+      )}
 
       <main id="top">
         {/* ── Hero ─────────────────────────────────────────────── */}
