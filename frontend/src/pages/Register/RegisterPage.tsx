@@ -38,6 +38,11 @@ export function RegisterPage() {
     e.preventDefault()
     setError('')
     setFieldErrors({})
+    if (!/^\d{10}$/.test(form.phone)) {
+      setFieldErrors({ phone: 'Phone number must be exactly 10 digits' })
+      setError('Please correct the highlighted field.')
+      return
+    }
     setLoading(true)
     try {
       const res = await authApi.register({
@@ -109,7 +114,16 @@ export function RegisterPage() {
                   error={fieldErrors.shortName} maxLength={10}
                   hint="Optional — defaults to your school's initials. Also used to build your User ID."
                 />
-                <Field id="phone" label="Phone number" required type="tel" value={form.phone} onChange={set('phone')} error={fieldErrors.phone} autoComplete="tel" />
+                <Field
+                  id="phone" label="Phone number" required type="tel" inputMode="numeric" maxLength={10}
+                  value={form.phone} error={fieldErrors.phone} autoComplete="tel" placeholder="10-digit number"
+                  onChange={(e) => {
+                    // Digits only, at most 10: letters, spaces and symbols are dropped as you type or paste
+                    const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                    setForm((f) => ({ ...f, phone: digits }))
+                    setFieldErrors((fe) => ({ ...fe, phone: '' }))
+                  }}
+                />
                 <Field
                   id="email" label="Email address" required type="email" value={form.email} onChange={set('email')}
                   error={fieldErrors.email} autoComplete="email" className="sm:col-span-2"

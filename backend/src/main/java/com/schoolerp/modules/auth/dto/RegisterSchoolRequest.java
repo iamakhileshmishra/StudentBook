@@ -30,7 +30,7 @@ public class RegisterSchoolRequest {
     private String email;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9+\\- ]{7,15}$", message = "Enter a valid phone number")
+    @Pattern(regexp = "^[0-9]{10}$", message = "Phone number must be exactly 10 digits")
     private String phone;
 
     @NotBlank(message = "Address is required")
