@@ -53,7 +53,7 @@ public class AcademicYearPromotionService {
                 "FROM students s " +
                 "JOIN student_enrollments e ON s.id = e.student_id " +
                 "JOIN classes c ON e.class_id = c.id " +
-                "JOIN sections sec ON e.section_id = sec.id " +
+                "LEFT JOIN sections sec ON e.section_id = sec.id " +
                 "WHERE s.school_id = ? AND e.academic_year_id = ? AND e.status = 'ACTIVE' " +
                 "ORDER BY c.numeric_order, sec.name, s.first_name",
                 (rs, rowNum) -> {
@@ -86,8 +86,8 @@ public class AcademicYearPromotionService {
         List<Map<String, Object>> classRows = jdbcTemplate.queryForList(
                 "SELECT c.id as class_id, c.name as class_name, c.numeric_order, s.id as section_id, s.name as section_name " +
                 "FROM classes c " +
-                "JOIN sections s ON c.id = s.class_id " +
-                "WHERE c.school_id = ? AND c.is_active = true AND s.is_active = true " +
+                "LEFT JOIN sections s ON c.id = s.class_id AND s.is_active = true " +
+                "WHERE c.school_id = ? AND c.is_active = true " +
                 "ORDER BY c.numeric_order, s.name", schoolId);
 
         Map<UUID, PromotionDataResponse.ClassData> classMap = new LinkedHashMap<>();
@@ -101,10 +101,12 @@ public class AcademicYearPromotionService {
                     .sections(new ArrayList<>())
                     .build()
             );
-            cData.getSections().add(PromotionDataResponse.SectionData.builder()
-                    .id((UUID) row.get("section_id"))
-                    .name((String) row.get("section_name"))
-                    .build());
+            if (row.get("section_id") != null) { // classes without sections still appear as targets
+                cData.getSections().add(PromotionDataResponse.SectionData.builder()
+                        .id((UUID) row.get("section_id"))
+                        .name((String) row.get("section_name"))
+                        .build());
+            }
         }
 
         return PromotionDataResponse.builder()
@@ -257,12 +259,24 @@ public class AcademicYearPromotionService {
     }
 
     private void validateTarget(StudentPromotionDto p, UUID schoolId, Student student) {
-        if (p.getNextClassId() == null || p.getNextSectionId() == null) {
-            throw new BusinessException("Choose the next class and section for " + student.getFirstName() + ".");
+        if (p.getNextClassId() == null) {
+            throw new BusinessException("Choose the next class for " + student.getFirstName() + ".");
         }
         SchoolClass cls = classRepository.findById(p.getNextClassId())
                 .filter(c -> c.getSchoolId().equals(schoolId) && c.isActive())
                 .orElseThrow(() -> new BusinessException("Invalid class selected for " + student.getFirstName() + "."));
+        // Section only when the target class has sections (V15)
+        boolean classHasSections = !sectionRepository
+                .findBySchoolIdAndClassIdAndActiveTrueOrderByNameAsc(schoolId, cls.getId()).isEmpty();
+        if (!classHasSections) {
+            if (p.getNextSectionId() != null) {
+                throw new BusinessException(cls.getName() + " has no sections.");
+            }
+            return;
+        }
+        if (p.getNextSectionId() == null) {
+            throw new BusinessException("Choose the next section for " + student.getFirstName() + ".");
+        }
         sectionRepository.findById(p.getNextSectionId())
                 .filter(s -> s.getSchoolId().equals(schoolId) && s.isActive() && s.getClassId().equals(cls.getId()))
                 .orElseThrow(() -> new BusinessException("Invalid section selected for " + student.getFirstName() + "."));

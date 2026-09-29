@@ -33,7 +33,8 @@ public class StudentEnrollment {
     @Column(name = "class_id", nullable = false)
     private UUID classId;
 
-    @Column(name = "section_id", nullable = false)
+    /** Null when the class has no sections (V15). */
+    @Column(name = "section_id")
     private UUID sectionId;
 
     @Column(name = "roll_number", length = 10)

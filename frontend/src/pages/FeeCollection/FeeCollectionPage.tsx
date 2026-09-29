@@ -189,7 +189,7 @@ export const FeeCollectionPage = () => {
                             </span>
                           )}
                         </div>
-                        <div className="text-sm text-slate-500">Adm: {student.admissionNumber} • {student.className} - {student.sectionName}</div>
+                        <div className="text-sm text-slate-500">Adm: {student.admissionNumber} • {student.className}{student.sectionName ? ` - ${student.sectionName}` : ''}</div>
                       </div>
                       {student.status === 'ACTIVE' && <CheckCircle2 className="w-5 h-5 text-slate-300" />}
                     </button>
@@ -206,7 +206,7 @@ export const FeeCollectionPage = () => {
                     </div>
                     <div>
                       <h3 className="text-xl font-bold text-slate-800">{selectedStudent.fullName}</h3>
-                      <p className="text-slate-600 font-medium">{selectedStudent.className} • Section {selectedStudent.sectionName}</p>
+                      <p className="text-slate-600 font-medium">{selectedStudent.className}{selectedStudent.sectionName ? ` • Section ${selectedStudent.sectionName}` : ''}</p>
                       <p className="text-sm text-slate-500 mt-1">Adm: {selectedStudent.admissionNumber} | Father: {selectedStudent.fatherName}</p>
                     </div>
                   </div>

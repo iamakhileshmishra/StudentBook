@@ -73,7 +73,7 @@ export function StudentDetailPage() {
               {student.className && (
                 <span className="flex items-center gap-1">
                   <GraduationCap className="w-3.5 h-3.5" />
-                  {student.className} — {student.sectionName} ({student.academicYearName})
+                  {student.className}{student.sectionName ? ` — ${student.sectionName}` : ''} ({student.academicYearName})
                 </span>
               )}
               {student.dateOfBirth && (

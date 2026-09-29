@@ -153,7 +153,7 @@ export function StudentsPage() {
                         {student.className ? (
                           <span className="badge-blue">
                             <GraduationCap className="w-3 h-3" />
-                            {student.className} {student.sectionName}
+                            {student.className} {student.sectionName ?? ''}
                           </span>
                         ) : (
                           <span className="text-slate-400 text-sm">—</span>

@@ -168,8 +168,10 @@ public class StudentService {
 
             classRepository.findById(en.getClassId())
                     .ifPresent(c -> builder.className(c.getName()));
-            sectionRepository.findById(en.getSectionId())
-                    .ifPresent(s -> builder.sectionName(s.getName()));
+            if (en.getSectionId() != null) {
+                sectionRepository.findById(en.getSectionId())
+                        .ifPresent(s -> builder.sectionName(s.getName()));
+            }
             yearRepository.findById(en.getAcademicYearId())
                     .ifPresent(y -> builder.academicYearName(y.getName()));
         });
@@ -188,11 +190,8 @@ public class StudentService {
                 .filter(c -> c.getSchoolId().equals(schoolId) && c.isActive())
                 .orElseThrow(() -> new BusinessException("Invalid class selected"));
 
-        // BUG-07: the section must be an active section of the chosen class
-        Section section = sectionRepository.findById(req.getSectionId())
-                .filter(s -> s.getSchoolId().equals(schoolId) && s.isActive()
-                        && s.getClassId().equals(schoolClass.getId()))
-                .orElseThrow(() -> new BusinessException("Invalid section selected for this class"));
+        // Section is required only if the class has sections; it must belong to the class (BUG-07)
+        Section section = resolveSection(schoolId, schoolClass, req.getSectionId());
 
         // Generate or validate admission number
         String admissionNumber;
@@ -272,7 +271,7 @@ public class StudentService {
                 .classId(enrollment.getClassId())
                 .className(schoolClass.getName())
                 .sectionId(enrollment.getSectionId())
-                .sectionName(section.getName())
+                .sectionName(section != null ? section.getName() : null)
                 .academicYearName(currentYear.getName())
                 .enrollmentDate(enrollment.getEnrollmentDate())
                 .createdAt(student.getCreatedAt())
@@ -347,6 +346,28 @@ public class StudentService {
             throw new BusinessException("Automatic admission numbers are exhausted; please enter one manually.");
         }
         return next;
+    }
+
+    /**
+     * Classes without sections take no section; classes with sections require an
+     * active one of that class. Returns null for a class without sections.
+     */
+    private Section resolveSection(UUID schoolId, SchoolClass schoolClass, UUID sectionId) {
+        boolean classHasSections = !sectionRepository
+                .findBySchoolIdAndClassIdAndActiveTrueOrderByNameAsc(schoolId, schoolClass.getId()).isEmpty();
+        if (!classHasSections) {
+            if (sectionId != null) {
+                throw new BusinessException(schoolClass.getName() + " has no sections");
+            }
+            return null;
+        }
+        if (sectionId == null) {
+            throw new BusinessException("Select a section for " + schoolClass.getName());
+        }
+        return sectionRepository.findById(sectionId)
+                .filter(s -> s.getSchoolId().equals(schoolId) && s.isActive()
+                        && s.getClassId().equals(schoolClass.getId()))
+                .orElseThrow(() -> new BusinessException("Invalid section selected for this class"));
     }
 
     private UUID getCurrentYearId(UUID schoolId) {

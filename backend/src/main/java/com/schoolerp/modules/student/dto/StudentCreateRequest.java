@@ -54,7 +54,7 @@ public class StudentCreateRequest {
     @NotNull(message = "Class is required")
     private UUID classId;
 
-    @NotNull(message = "Section is required")
+    // Required only when the chosen class has sections (checked in StudentService)
     private UUID sectionId;
 
     private LocalDate enrollmentDate;

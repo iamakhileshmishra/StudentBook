@@ -174,7 +174,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
         </div>
         <div className="flex items-start">
           <span className="text-slate-500 w-24 shrink-0">Class & Section:</span> 
-          <span className="font-semibold text-slate-800">{student.className} - {student.sectionName}</span>
+          <span className="font-semibold text-slate-800">{student.className}{student.sectionName ? ` - ${student.sectionName}` : ''}</span>
         </div>
         <div className="flex items-start">
           <span className="text-slate-500 w-24 shrink-0">Admission No:</span> 

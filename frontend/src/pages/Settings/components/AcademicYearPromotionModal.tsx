@@ -240,7 +240,7 @@ export function AcademicYearPromotionModal({ isOpen, onClose }: Props) {
                               <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                                 <td className="px-4 py-3">
                                   <div className="font-medium text-slate-800">{student.fullName}</div>
-                                  <div className="text-xs text-slate-500">{student.admissionNumber} | {student.sectionName}</div>
+                                  <div className="text-xs text-slate-500">{student.admissionNumber}{student.sectionName ? ` | ${student.sectionName}` : ''}</div>
                                 </td>
                                 <td className="px-4 py-3">
                                   <div className={`inline-flex items-center gap-1 font-medium ${hasPendingDues ? 'text-red-600' : 'text-slate-500'}`}>

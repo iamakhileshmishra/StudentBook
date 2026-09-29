@@ -88,7 +88,9 @@ export function AddStudentModal({ onClose }: Props) {
     }
     
     if (!form.classId) errs.classId = 'Required'
-    if (!form.sectionId) errs.sectionId = 'Required'
+    // Section is only required when the chosen class has sections
+    const classHasSections = (selectedClass?.sections.length ?? 0) > 0
+    if (classHasSections && !form.sectionId) errs.sectionId = 'Required'
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -108,6 +110,7 @@ export function AddStudentModal({ onClose }: Props) {
       gender: form.gender || undefined,
       admissionNumber: form.admissionNumber || undefined,
       enrollmentDate: form.enrollmentDate || undefined,
+      sectionId: form.sectionId || undefined,
       concessionAmount: Number(form.concessionAmount) || 0,
     }
     createStudent(payload)
@@ -295,7 +298,13 @@ export function AddStudentModal({ onClose }: Props) {
                     {errors.classId && <p className="text-red-500 text-xs mt-1">{errors.classId}</p>}
                   </div>
 
-                  {selectedClass && (
+                  {selectedClass && selectedClass.sections.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      {selectedClass.name} has no sections, so none is needed.
+                    </p>
+                  )}
+
+                  {selectedClass && selectedClass.sections.length > 0 && (
                     <div>
                       <label className="label">Section <span className="text-red-500">*</span></label>
                       <div className="flex gap-2 flex-wrap">

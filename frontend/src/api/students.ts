@@ -12,7 +12,7 @@ export interface StudentSummaryDto {
   staffChild: boolean
   concessionAmount: number
   className: string
-  sectionName: string
+  sectionName?: string | null
   classId: string
   enrollmentId: string
 }
@@ -72,7 +72,8 @@ export interface StudentCreateRequest {
   concessionAmount: number
   concessionNote?: string
   classId: string
-  sectionId: string
+  /** Omitted when the class has no sections */
+  sectionId?: string
   enrollmentDate?: string
   admissionNumber?: string
 }

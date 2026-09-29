@@ -63,10 +63,12 @@ public class PaymentHistoryService {
                 transaction.getStudentId(), transaction.getEnrollmentId()
         );
 
-        String sectionName = "A";
-        try {
-            sectionName = jdbcTemplate.queryForObject("SELECT name FROM sections WHERE id = ?", String.class, map.get("section_id"));
-        } catch (Exception ignored) {}
+        // No section when the class has none (V15); previously this silently defaulted to "A"
+        String sectionName = null;
+        if (map.get("section_id") != null) {
+            sectionName = jdbcTemplate.query("SELECT name FROM sections WHERE id = ?",
+                    rs -> rs.next() ? rs.getString(1) : null, map.get("section_id"));
+        }
 
         StudentSummaryDto student = StudentSummaryDto.builder()
                 .id((UUID) map.get("id"))
