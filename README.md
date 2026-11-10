@@ -1,5 +1,7 @@
 # StudentBook Setup Guide
 
+> **Hosting / going live:** see [DEPLOY.md](DEPLOY.md) (free tier: Render + Neon + Brevo).
+
 Welcome to the StudentBook School Management ERP. Follow the steps below to set up and run the project locally on your machine.
 
 ## Prerequisites
@@ -12,6 +14,9 @@ Before you begin, ensure you have the following installed on your system:
 ---
 
 ## 1. Start the Backend and Database
+
+First, create your local secrets file: copy `.env.example` to `.env` and fill in the values (it is git-ignored).
+
 
 The backend services and PostgreSQL database are fully containerized and managed via Docker Compose. This ensures you don't need to manually configure a database or install Java.
 
@@ -57,12 +62,12 @@ The frontend is built with React, Vite, and Tailwind CSS.
 
 ## 3. Login Credentials
 
-The database is automatically seeded with an initial school profile, structure, and an administrator account when it starts up.
+The database is automatically seeded with a sample school (*New Shanti Niketan Vidyapeeth*) and its administrator account, User ID `admin`.
 
-You can log in to the sample school's dashboard using the following credentials:
+For security, the seeded default password is **disabled on every fresh database** (migration V16), so it can never be used on a hosted server. To get in locally, either:
 
-- **Username:** `admin`
-- **Password:** `Admin@1234`
+- **Create your own school:** use **Create Account** on the landing page. The login details arrive in Mailpit at http://localhost:8025. Or:
+- **Unlock the sample school:** on the login page, use **Forgot password?** with the sample school's email (shown in Settings → School Profile once you're in, or in the `schools` table). Locally that email lands in Mailpit too; set any new password, then log in as `admin`.
 
 ---
 

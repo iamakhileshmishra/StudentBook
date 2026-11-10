@@ -48,7 +48,7 @@ export function DashboardPage() {
   // Modals state
   const [selectedClass, setSelectedClass] = useState<{ id: string, name: string } | null>(null)
   const [selectedReceipt, setSelectedReceipt] = useState<FullReceiptDto | null>(null)
-  const [isReceiptLoading, setIsReceiptLoading] = useState(false)
+  const [, setIsReceiptLoading] = useState(false)
 
   const handleReceiptClick = async (receiptNumber: string) => {
     try {

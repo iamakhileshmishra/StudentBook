@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { IndianRupee, Edit3, Check, X, Loader2, BookOpen, Layers, Settings2, Plus } from 'lucide-react'
-import { feesApi, type ClassFeeStructureDto, type FeeStructureRowDto, type FeeCategoryDto } from '@/api/fees'
+import { Edit3, Check, X, Loader2, BookOpen, Layers, Settings2, Plus } from 'lucide-react'
+import { feesApi, type ClassFeeStructureDto, type FeeStructureRowDto } from '@/api/fees'
 import { formatCurrency, cn } from '@/lib/utils'
 import { settingsApi } from '@/api/settings'
 

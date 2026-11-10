@@ -59,15 +59,4 @@ function App() {
   )
 }
 
-function PlaceholderPage({ title, desc }: { title: string; desc: string }) {
-  return (
-    <div className="p-8 animate-fade-in">
-      <div className="card p-16 text-center">
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">{title}</h1>
-        <p className="text-slate-500">{desc}</p>
-      </div>
-    </div>
-  )
-}
-
 export default App

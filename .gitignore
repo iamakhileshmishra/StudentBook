@@ -30,3 +30,6 @@ Thumbs.db
 
 # Docker volumes (local)
 postgres_data/
+
+# Old local log files
+backend_logs*.txt

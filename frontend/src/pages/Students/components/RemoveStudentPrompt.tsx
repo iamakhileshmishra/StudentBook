@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, Loader2, X } from 'lucide-react'
+import { AlertTriangle, Loader2 } from 'lucide-react'
 import { studentsApi } from '@/api/students'
 
 interface Props {

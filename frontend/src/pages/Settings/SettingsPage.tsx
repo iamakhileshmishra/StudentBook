@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Settings, Shield, Database, School, Save, Calendar } from 'lucide-react'
-import { settingsApi, SchoolProfileDto, ChangePasswordRequest, AcademicYearDto } from '@/api/settings'
+import { settingsApi, SchoolProfileDto, AcademicYearDto } from '@/api/settings'
 import { academicApi } from '@/api/academic'
 import { AcademicYearPromotionModal } from './components/AcademicYearPromotionModal'
 import { ClassSettings } from './components/ClassSettings'

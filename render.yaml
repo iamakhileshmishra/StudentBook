@@ -1,0 +1,35 @@
+# Render Blueprint — free-tier beta hosting (see DEPLOY.md)
+# One web service runs the backend with the React frontend bundled in.
+# Database: Neon free Postgres. Email: Brevo HTTPS API (Render's free plan blocks SMTP).
+services:
+  - type: web
+    name: studentbook
+    runtime: docker
+    plan: free
+    region: singapore          # closest Render region to India
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: APP_TIMEZONE
+        value: Asia/Kolkata
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: RATE_LIMIT_TRUST_PROXY
+        value: "true"
+      # ── Secrets: you will be asked for these when creating the Blueprint ──
+      - key: JWT_SECRET            # random, at least 64 characters (see DEPLOY.md)
+        sync: false
+      - key: DATABASE_URL          # jdbc:postgresql://<neon-host>/<db>?sslmode=require
+        sync: false
+      - key: DATABASE_USERNAME
+        sync: false
+      - key: DATABASE_PASSWORD
+        sync: false
+      - key: BREVO_API_KEY         # Brevo → SMTP & API → API Keys
+        sync: false
+      - key: MAIL_FROM             # e.g. School ERP <your-verified-sender@gmail.com>
+        sync: false

@@ -74,8 +74,10 @@ public class SecurityConfig {
                                 "/api/settings/school",
                                 "/api/settings/academic-years/current").hasAnyRole(ALL_STAFF)
                         .requestMatchers(HttpMethod.POST, "/api/fees/collection").hasAnyRole(ALL_STAFF)
-                        // Everything else (setup, student changes, promotion, backup) is admin-only
-                        .anyRequest().hasAnyRole(ADMINS)
+                        // Every other API call (setup, student changes, promotion, backup) is admin-only
+                        .requestMatchers("/api/**").hasAnyRole(ADMINS)
+                        // Non-API paths are the bundled frontend (index.html, assets, SPA routes)
+                        .anyRequest().permitAll()
                 )
                 // JSON 401/403 (the default for stateless APIs is a bare 403 for both), so the
                 // frontend can tell "session expired → refresh" apart from "not allowed"

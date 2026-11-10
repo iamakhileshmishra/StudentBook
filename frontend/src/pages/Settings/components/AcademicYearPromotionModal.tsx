@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Calendar, AlertCircle, ChevronRight, CheckCircle2, Loader2, IndianRupee } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { settingsApi, PromotionDataResponse, PromotionRequest, StudentPromotionDto, PromotionDecision, ClassData, SectionData } from '@/api/settings';
+import { settingsApi, StudentPromotionDto, PromotionDecision } from '@/api/settings';
 
 interface Props {
   isOpen: boolean;

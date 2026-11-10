@@ -102,6 +102,12 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.BAD_REQUEST, "Bad Request", message);
     }
 
+    /** Unknown static file (e.g. an outdated /assets/*.js) — a plain 404, not a 500. */
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResource(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return error(HttpStatus.NOT_FOUND, "Not Found", "Not found");
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleConflict(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMostSpecificCause().getMessage());

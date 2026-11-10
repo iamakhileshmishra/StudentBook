@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Plus, Edit2, Trash2, Layers, AlertTriangle, X } from 'lucide-react'
-import { academicApi, ClassDto } from '@/api/academic'
+import { academicApi } from '@/api/academic'
 
 export function ClassSettings() {
   const queryClient = useQueryClient()

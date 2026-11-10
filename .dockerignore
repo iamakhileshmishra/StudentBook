@@ -1,0 +1,9 @@
+.git
+.claude
+**/node_modules
+frontend/dist
+backend/target
+*.log
+backend_logs*.txt
+.env
+.env.*
