@@ -31,5 +31,5 @@ services:
         sync: false
       - key: BREVO_API_KEY         # Brevo → SMTP & API → API Keys
         sync: false
-      - key: MAIL_FROM             # e.g. School ERP <your-verified-sender@gmail.com>
+      - key: MAIL_FROM             # e.g. StudentBook <your-verified-sender@gmail.com>
         sync: false

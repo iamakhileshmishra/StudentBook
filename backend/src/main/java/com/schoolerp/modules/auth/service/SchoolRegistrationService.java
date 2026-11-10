@@ -213,12 +213,12 @@ public class SchoolRegistrationService {
     private void sendWelcomeEmail(String to, String ownerName, String schoolName,
                                   String username, String tempPassword) {
         String loginUrl = frontendUrl + "/login";
-        String subject = "Your School ERP account for " + schoolName;
+        String subject = "Your StudentBook account for " + schoolName;
 
         String text = """
                 Hello %s,
 
-                Your School ERP account for %s has been created.
+                Your StudentBook account for %s has been created.
 
                 User ID: %s
                 Temporary password: %s
@@ -232,7 +232,7 @@ public class SchoolRegistrationService {
 
         String html = """
                 <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;color:#0f172a">
-                  <h2 style="color:#1a4fd6">Welcome to School ERP</h2>
+                  <h2 style="color:#1a4fd6">Welcome to StudentBook</h2>
                   <p>Hello %s,</p>
                   <p>Your account for <strong>%s</strong> has been created. Use these details to sign in:</p>
                   <table style="border-collapse:collapse;margin:16px 0">

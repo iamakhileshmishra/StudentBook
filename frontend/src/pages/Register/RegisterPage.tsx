@@ -68,7 +68,7 @@ export function RegisterPage() {
             <div className="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <span className="font-bold text-lg text-slate-900">School ERP</span>
+            <span className="font-bold text-lg text-slate-900">StudentBook</span>
           </Link>
           <Link to="/login" className="text-sm font-medium text-brand-600 hover:text-brand-700">
             Already registered? Login

@@ -28,8 +28,8 @@ import java.util.UUID;
 public class OtpService {
 
     public enum Purpose {
-        PASSWORD_RESET("reset the password", "Your School ERP password reset code"),
-        PASSWORD_CHANGE("confirm the password change", "Confirm your School ERP password change");
+        PASSWORD_RESET("reset the password", "Your StudentBook password reset code"),
+        PASSWORD_CHANGE("confirm the password change", "Confirm your StudentBook password change");
 
         private final String action;
         private final String subject;
@@ -138,7 +138,7 @@ public class OtpService {
 
     /** Best-effort security notice after a password is changed or reset. */
     public void sendPasswordChangedNotice(Recipient to, String how) {
-        String subject = "Your School ERP password was changed";
+        String subject = "Your StudentBook password was changed";
         String text = """
                 Hello %s,
 

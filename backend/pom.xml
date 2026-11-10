@@ -15,7 +15,7 @@
     <groupId>com.schoolerp</groupId>
     <artifactId>school-erp-backend</artifactId>
     <version>1.0.0-SNAPSHOT</version>
-    <name>School ERP Backend</name>
+    <name>StudentBook Backend</name>
     <description>Multi-tenant School Fee Management System</description>
     <packaging>jar</packaging>
 

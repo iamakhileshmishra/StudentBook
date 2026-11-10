@@ -46,7 +46,7 @@ export function LoginPage() {
             <div className="w-11 h-11 rounded-xl bg-brand-500 flex items-center justify-center">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <span className="text-white font-bold text-xl">School ERP</span>
+            <span className="text-white font-bold text-xl">StudentBook</span>
           </div>
 
           <h1 className="text-4xl font-bold text-white leading-tight mb-4">
@@ -82,7 +82,7 @@ export function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <span className="text-slate-900 font-bold text-lg">School ERP</span>
+            <span className="text-slate-900 font-bold text-lg">StudentBook</span>
           </div>
 
           <h2 className="text-2xl font-bold text-slate-900 mb-1">Welcome back</h2>

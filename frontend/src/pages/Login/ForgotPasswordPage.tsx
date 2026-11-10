@@ -86,7 +86,7 @@ export function ForgotPasswordPage() {
           <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <span className="text-slate-900 font-bold text-lg">School ERP</span>
+          <span className="text-slate-900 font-bold text-lg">StudentBook</span>
         </Link>
 
         {step !== 'done' && <StepIndicator step={step} />}

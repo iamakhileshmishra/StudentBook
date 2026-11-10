@@ -45,7 +45,7 @@ export function Sidebar() {
           </div>
           <div className="min-w-0">
             <p className="text-white font-semibold text-sm leading-tight line-clamp-2">
-              {user?.schoolName ?? 'School ERP'}
+              {user?.schoolName ?? 'StudentBook'}
             </p>
             <p className="text-slate-400 text-xs mt-0.5">Fee Management</p>
           </div>

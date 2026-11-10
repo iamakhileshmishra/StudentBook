@@ -1,4 +1,4 @@
-# Git ignore rules for School ERP
+# Git ignore rules for StudentBook
 
 # Environment (NEVER commit these)
 .env

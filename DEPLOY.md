@@ -45,7 +45,7 @@ The tables are created automatically by Flyway the first time the app starts.
 1. **Sign up** at **brevo.com** (free plan).
 2. **Verify your sender address.** Go to **Senders, Domains & Dedicated IPs → Senders → Add a sender**, enter the address emails should come from (e.g. your Gmail), and click the verification link Brevo sends you.
 3. **Create an API key.** Go to **SMTP & API → API Keys → Generate a new API key**. Choose **Restricted** access and set **Transactional email** to **All**. *Read* can't send, and the app then fails with HTTP 403. Copy the key; it is shown once.
-4. **Decide your `MAIL_FROM`:** it must use the verified address, e.g. `School ERP <yourname@gmail.com>`.
+4. **Decide your `MAIL_FROM`:** it must use the verified address, e.g. `StudentBook <yourname@gmail.com>`.
 
 > **Deliverability:** without your own domain, emails sent "from" a Gmail address via Brevo may land in spam. Ask beta testers to check spam, and mark the first email "Not spam". Adding a domain later fixes this.
 
