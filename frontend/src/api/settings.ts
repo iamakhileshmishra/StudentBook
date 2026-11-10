@@ -62,6 +62,8 @@ export interface SchoolProfileDto {
   logoUrl?: string
   feeDueDate?: number
   lateFeeRules?: LateFeeRule[]
+  /** Email the parent a receipt link after each fee payment */
+  notifyParentEmail?: boolean
 }
 
 export interface ChangePasswordRequest {

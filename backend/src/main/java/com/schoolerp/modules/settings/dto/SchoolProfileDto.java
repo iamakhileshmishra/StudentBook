@@ -55,4 +55,7 @@ public class SchoolProfileDto {
     @Valid
     @Size(max = 20, message = "At most 20 late fee rules")
     private List<LateFeeRuleDto> lateFeeRules;
+
+    /** Email the parent a receipt link after each fee payment. Null on update keeps the current value. */
+    private Boolean notifyParentEmail;
 }

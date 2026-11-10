@@ -79,7 +79,11 @@ export function EditStudentModal({ student, onClose }: Props) {
     if (form.alternatePhone && !/^\d{10}$/.test(form.alternatePhone)) {
       errs.alternatePhone = 'Must be 10 digits'
     }
-    
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Enter a valid email address'
+    }
+
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -87,7 +91,7 @@ export function EditStudentModal({ student, onClose }: Props) {
   const handleSubmit = () => {
     if (!validate()) {
       if (errors.firstName || errors.lastName || errors.dateOfBirth) setSection('personal')
-      else if (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName) setSection('parent')
+      else if (errors.primaryContactPhone || errors.alternatePhone || errors.email || errors.fatherName || errors.motherName) setSection('parent')
       return
     }
 
@@ -127,7 +131,7 @@ export function EditStudentModal({ student, onClose }: Props) {
             const Icon = s.icon
             const hasError = (
               (s.id === 'personal' && (errors.firstName || errors.lastName || errors.dateOfBirth)) ||
-              (s.id === 'parent' && (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName))
+              (s.id === 'parent' && (errors.primaryContactPhone || errors.alternatePhone || errors.email || errors.fatherName || errors.motherName))
             )
             return (
               <button
@@ -219,6 +223,14 @@ export function EditStudentModal({ student, onClose }: Props) {
                     if (val.length <= 10) set('alternatePhone', val)
                   }} />
                 {errors.alternatePhone && <p className="text-red-500 text-xs mt-1">{errors.alternatePhone}</p>}
+              </div>
+              <div>
+                <label className="label">Parent Email</label>
+                <input type="email" className={cn('input-field', errors.email && 'border-red-400')} value={form.email}
+                  onChange={(e) => set('email', e.target.value.trim())} placeholder="Optional" />
+                {errors.email
+                  ? <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                  : <p className="text-slate-400 text-xs mt-1">Fee receipts are emailed here after each payment</p>}
               </div>
               <div>
                 <label className="label">Address</label>

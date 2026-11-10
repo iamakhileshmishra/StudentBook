@@ -86,7 +86,11 @@ export function AddStudentModal({ onClose }: Props) {
     if (form.alternatePhone && !/^\d{10}$/.test(form.alternatePhone)) {
       errs.alternatePhone = 'Must be 10 digits'
     }
-    
+
+    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Enter a valid email address'
+    }
+
     if (!form.classId) errs.classId = 'Required'
     // Section is only required when the chosen class has sections
     const classHasSections = (selectedClass?.sections.length ?? 0) > 0
@@ -99,7 +103,7 @@ export function AddStudentModal({ onClose }: Props) {
     if (!validate()) {
       // Switch to section with first error
       if (errors.firstName || errors.lastName || errors.dateOfBirth) setSection('personal')
-      else if (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName) setSection('parent')
+      else if (errors.primaryContactPhone || errors.alternatePhone || errors.email || errors.fatherName || errors.motherName) setSection('parent')
       else if (errors.classId || errors.sectionId || errors.enrollmentDate) setSection('class')
       return
     }
@@ -151,7 +155,7 @@ export function AddStudentModal({ onClose }: Props) {
                 const Icon = s.icon
                 const hasError = (
                   (s.id === 'personal' && (errors.firstName || errors.lastName || errors.dateOfBirth)) ||
-                  (s.id === 'parent' && (errors.primaryContactPhone || errors.alternatePhone || errors.fatherName || errors.motherName)) ||
+                  (s.id === 'parent' && (errors.primaryContactPhone || errors.alternatePhone || errors.email || errors.fatherName || errors.motherName)) ||
                   (s.id === 'class' && (errors.classId || errors.sectionId || errors.enrollmentDate))
                 )
                 return (
@@ -252,6 +256,14 @@ export function AddStudentModal({ onClose }: Props) {
                         if (val.length <= 10) set('alternatePhone', val)
                       }} placeholder="Optional" />
                     {errors.alternatePhone && <p className="text-red-500 text-xs mt-1">{errors.alternatePhone}</p>}
+                  </div>
+                  <div>
+                    <label className="label">Parent Email</label>
+                    <input type="email" className={cn('input-field', errors.email && 'border-red-400')} value={form.email ?? ''}
+                      onChange={(e) => set('email', e.target.value.trim())} placeholder="Optional" />
+                    {errors.email
+                      ? <p className="text-red-500 text-xs mt-1">{errors.email}</p>
+                      : <p className="text-slate-400 text-xs mt-1">Fee receipts are emailed here after each payment</p>}
                   </div>
                   <div>
                     <label className="label">Address</label>

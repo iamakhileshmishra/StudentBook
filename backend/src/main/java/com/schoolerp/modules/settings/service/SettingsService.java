@@ -46,7 +46,7 @@ public class SettingsService {
         UUID schoolId = TenantContext.getSchoolId();
         
         return jdbcTemplate.queryForObject(
-                "SELECT name, short_name, address_line1, address_line2, city, state, pincode, phone, email, website, logo_url, fee_due_date, late_fee_rules FROM schools WHERE id = ?",
+                "SELECT name, short_name, address_line1, address_line2, city, state, pincode, phone, email, website, logo_url, fee_due_date, late_fee_rules, notify_parent_email FROM schools WHERE id = ?",
                 (rs, rowNum) -> {
                     List<LateFeeRuleDto> rules = new ArrayList<>();
                     String rulesJson = rs.getString("late_fee_rules");
@@ -71,6 +71,7 @@ public class SettingsService {
                         .logoUrl(rs.getString("logo_url"))
                         .feeDueDate(rs.getObject("fee_due_date") != null ? rs.getInt("fee_due_date") : null)
                         .lateFeeRules(rules)
+                        .notifyParentEmail(rs.getBoolean("notify_parent_email"))
                         .build();
                 },
                 schoolId
@@ -105,12 +106,14 @@ public class SettingsService {
                 UPDATE schools 
                 SET name = ?, short_name = ?, address_line1 = ?, address_line2 = ?, 
                     city = ?, state = ?, pincode = ?, phone = ?, email = ?, 
-                    website = ?, logo_url = ?, fee_due_date = ?, late_fee_rules = ?::jsonb, updated_at = NOW()
+                    website = ?, logo_url = ?, fee_due_date = ?, late_fee_rules = ?::jsonb,
+                    notify_parent_email = COALESCE(?::boolean, notify_parent_email), updated_at = NOW()
                 WHERE id = ?
                 """,
                 req.getName(), req.getShortName(), req.getAddressLine1(), req.getAddressLine2(),
                 req.getCity(), req.getState(), req.getPincode(), req.getPhone(), req.getEmail(),
-                req.getWebsite(), req.getLogoUrl(), req.getFeeDueDate(), rulesJson, schoolId
+                req.getWebsite(), req.getLogoUrl(), req.getFeeDueDate(), rulesJson,
+                req.getNotifyParentEmail(), schoolId
         );
         
         return getSchoolProfile();

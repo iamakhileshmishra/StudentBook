@@ -310,6 +310,24 @@ function ProfileSettings() {
         </div>
       </div>
 
+      <div className="mt-8 pt-8 border-t border-slate-200">
+        <h3 className="text-lg font-bold text-slate-800 mb-4">Parent Notifications</h3>
+        <label className="flex items-start gap-3 cursor-pointer max-w-xl">
+          <input
+            type="checkbox"
+            checked={formData.notifyParentEmail ?? true}
+            onChange={(e) => setFormData({ ...formData, notifyParentEmail: e.target.checked })}
+            className="mt-1 w-4 h-4 accent-brand-600"
+          />
+          <span>
+            <span className="text-sm font-medium text-slate-700 block">Email parents when a fee is paid</span>
+            <span className="text-xs text-slate-500">
+              Sends the month, payment mode, date and a link to the receipt. Only goes to students with a parent email on file.
+            </span>
+          </span>
+        </label>
+      </div>
+
       <div className="mt-8 flex justify-end">
         <button 
           onClick={() => mutation.mutate(formData)}

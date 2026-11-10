@@ -9,6 +9,7 @@ import com.schoolerp.modules.fee.entity.PaymentLineItem;
 import com.schoolerp.modules.fee.entity.PaymentTransaction;
 import com.schoolerp.modules.fee.repository.PaymentLineItemRepository;
 import com.schoolerp.modules.fee.repository.PaymentTransactionRepository;
+import com.schoolerp.modules.notification.event.FeePaidEvent;
 import com.schoolerp.modules.settings.dto.LateFeeRuleDto;
 import com.schoolerp.modules.student.entity.Student;
 import com.schoolerp.modules.student.entity.StudentEnrollment;
@@ -20,6 +21,7 @@ import com.schoolerp.shared.security.TenantContext;
 import com.schoolerp.shared.time.SchoolClock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,7 @@ public class FeeCollectionService {
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final SchoolClock clock;
+    private final ApplicationEventPublisher events;
 
     public FeeDuesResponse getDues(UUID studentId, int month, int year) {
         UUID schoolId = TenantContext.getSchoolId();
@@ -148,6 +151,7 @@ public class FeeCollectionService {
         PaymentTransaction transaction = PaymentTransaction.builder()
                 .schoolId(schoolId)
                 .receiptNumber(buildReceiptNumber(schoolId, student, today))
+                .shareToken(ShareTokens.newToken())
                 .studentId(student.getId())
                 .enrollmentId(enrollment.getId())
                 .academicYearId(enrollment.getAcademicYearId())
@@ -197,6 +201,9 @@ public class FeeCollectionService {
             studentEnrollmentRepository.save(enrollment);
         }
         paymentLineItemRepository.saveAll(lineItems);
+
+        // Parents are notified only after this transaction commits (see ParentNotificationService)
+        events.publishEvent(new FeePaidEvent(schoolId, saved.getId()));
 
         return saved;
     }

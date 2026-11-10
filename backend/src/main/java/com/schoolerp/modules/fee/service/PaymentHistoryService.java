@@ -2,6 +2,7 @@ package com.schoolerp.modules.fee.service;
 
 import com.schoolerp.modules.fee.dto.FeeDuesResponse;
 import com.schoolerp.modules.fee.dto.FullReceiptDto;
+import com.schoolerp.modules.fee.dto.PublicReceiptDto;
 import com.schoolerp.modules.fee.entity.PaymentLineItem;
 import com.schoolerp.modules.fee.entity.PaymentTransaction;
 import com.schoolerp.modules.fee.repository.FeeCategoryRepository;
@@ -32,6 +33,52 @@ public class PaymentHistoryService {
         PaymentTransaction transaction = paymentTransactionRepository
                 .findBySchoolIdAndReceiptNumber(schoolId, receiptNumber)
                 .orElseThrow(() -> new com.schoolerp.shared.exception.ResourceNotFoundException("Receipt not found"));
+
+        return buildFullReceipt(transaction);
+    }
+
+    /**
+     * The receipt a parent opens from the emailed link. No login: the random share token
+     * is the only key, and the response leaves out internal IDs, remarks and payment references.
+     */
+    public PublicReceiptDto getPublicReceipt(String shareToken) {
+        PaymentTransaction transaction = (ShareTokens.looksValid(shareToken)
+                ? paymentTransactionRepository.findByShareToken(shareToken)
+                : java.util.Optional.<PaymentTransaction>empty())
+                .orElseThrow(() -> new com.schoolerp.shared.exception.ResourceNotFoundException("Receipt not found"));
+
+        FullReceiptDto full = buildFullReceipt(transaction);
+        StudentSummaryDto student = full.getStudent();
+
+        PublicReceiptDto.School school = jdbcTemplate.queryForObject(
+                "SELECT name, address_line1, address_line2, city, state, pincode, phone, email, logo_url FROM schools WHERE id = ?",
+                (rs, rowNum) -> new PublicReceiptDto.School(
+                        rs.getString("name"), rs.getString("address_line1"), rs.getString("address_line2"),
+                        rs.getString("city"), rs.getString("state"), rs.getString("pincode"),
+                        rs.getString("phone"), rs.getString("email"), rs.getString("logo_url")),
+                transaction.getSchoolId());
+
+        return new PublicReceiptDto(
+                school,
+                transaction.getReceiptNumber(),
+                transaction.getStatus(),
+                transaction.getCollectionMonth(),
+                transaction.getCollectionYear(),
+                transaction.getPaymentDate(),
+                transaction.getPaymentMethod(),
+                new PublicReceiptDto.Student(student.getFirstName(), student.getLastName(),
+                        student.getAdmissionNumber(), student.getFatherName(),
+                        student.getClassName(), student.getSectionName()),
+                full.getDues().getLineItems().stream()
+                        .map(i -> new PublicReceiptDto.LineItem(i.getFeeCategoryName(), i.getAmount()))
+                        .toList(),
+                transaction.getLateFee(),
+                transaction.getConcessionApplied(),
+                transaction.getGrandTotal());
+    }
+
+    private FullReceiptDto buildFullReceipt(PaymentTransaction transaction) {
+        UUID schoolId = transaction.getSchoolId();
 
         List<PaymentLineItem> items = paymentLineItemRepository.findByTransactionId(transaction.getId());
         

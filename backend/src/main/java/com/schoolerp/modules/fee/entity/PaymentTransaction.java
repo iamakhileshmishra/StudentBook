@@ -23,6 +23,10 @@ public class PaymentTransaction {
     @Column(name = "receipt_number", nullable = false, length = 30)
     private String receiptNumber;
 
+    /** Random token behind the public receipt link sent to parents (/r/{token}). */
+    @Column(name = "share_token", nullable = false, length = 64, updatable = false)
+    private String shareToken;
+
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
 

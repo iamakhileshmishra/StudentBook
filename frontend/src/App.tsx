@@ -15,6 +15,7 @@ import { FeeStructurePage } from '@/pages/FeeStructure/FeeStructurePage'
 import { FeeCollectionPage } from '@/pages/FeeCollection/FeeCollectionPage'
 import { PaymentsPage } from '@/pages/Payments/PaymentsPage'
 import { SettingsPage } from '@/pages/Settings/SettingsPage'
+import { PublicReceiptPage } from '@/pages/PublicReceipt/PublicReceiptPage'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/r/:token" element={<PublicReceiptPage />} />
 
           {/* Protected */}
           <Route element={<ProtectedRoute />}>

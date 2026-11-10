@@ -4,6 +4,7 @@ import { StudentSummaryDto } from '../../../api/students';
 import { Printer, X, CheckCircle2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { settingsApi } from '@/api/settings';
+import { ParentNotificationStatus } from './ParentNotificationStatus';
 
 interface ReceiptModalProps {
   receipt: PaymentReceiptDto | null;
@@ -283,6 +284,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
             </button>
           </div>
         </div>
+
+        <ParentNotificationStatus
+          receiptNumber={receipt.receiptNumber}
+          shareToken={receipt.shareToken}
+          confirmedAt={receipt.confirmedAt}
+        />
 
         {/* Print Layout Area */}
         <div className="bg-slate-100 p-8 print:p-0 print:bg-white flex justify-center overflow-auto print:overflow-visible print:block">

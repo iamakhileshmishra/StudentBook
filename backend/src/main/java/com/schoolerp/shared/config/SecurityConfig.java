@@ -53,6 +53,7 @@ public class SecurityConfig {
                                 "/api/auth/refresh",
                                 "/api/auth/logout", // acts on the SameSite=Strict refresh cookie only
                                 "/api/health",
+                                "/api/public/**", // parent receipt links (random share token)
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
@@ -73,7 +74,9 @@ public class SecurityConfig {
                                 "/api/payments/**",
                                 "/api/settings/school",
                                 "/api/settings/academic-years/current").hasAnyRole(ALL_STAFF)
-                        .requestMatchers(HttpMethod.POST, "/api/fees/collection").hasAnyRole(ALL_STAFF)
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/fees/collection",
+                                "/api/payments/receipt/*/notifications/email").hasAnyRole(ALL_STAFF)
                         // Every other API call (setup, student changes, promotion, backup) is admin-only
                         .requestMatchers("/api/**").hasAnyRole(ADMINS)
                         // Non-API paths are the bundled frontend (index.html, assets, SPA routes)

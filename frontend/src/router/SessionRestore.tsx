@@ -10,7 +10,9 @@ import { useAuthStore } from '@/store/authStore'
  * any route decides the user is signed out.
  */
 export function SessionRestore({ children }: { children: ReactNode }) {
-  const [ready, setReady] = useState(() => useAuthStore.getState().isAuthenticated)
+  // Parent receipt links (/r/…) never need a staff session
+  const [ready, setReady] = useState(() =>
+    useAuthStore.getState().isAuthenticated || window.location.pathname.startsWith('/r/'))
 
   useEffect(() => {
     if (ready) return

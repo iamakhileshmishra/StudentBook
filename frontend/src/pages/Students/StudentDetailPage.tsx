@@ -100,7 +100,7 @@ export function StudentDetailPage() {
             {student.guardianName && <InfoRow label="Guardian" value={student.guardianName} />}
             <InfoRow label="Primary Phone" value={student.primaryContactPhone} mono />
             {student.alternatePhone && <InfoRow label="Alternate Phone" value={student.alternatePhone} mono />}
-            {student.email && <InfoRow label="Email" value={student.email} />}
+            {student.email && <InfoRow label="Parent Email" value={student.email} />}
             {student.address && <InfoRow label="Address" value={student.address} />}
           </div>
         </div>

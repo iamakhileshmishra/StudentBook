@@ -35,4 +35,6 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
     Page<PaymentTransaction> findBySchoolIdAndStatusOrderByConfirmedAtDesc(UUID schoolId, String status, Pageable pageable);
 
     Optional<PaymentTransaction> findBySchoolIdAndReceiptNumber(UUID schoolId, String receiptNumber);
+
+    Optional<PaymentTransaction> findByShareToken(String shareToken);
 }
