@@ -44,7 +44,7 @@ The tables are created automatically by Flyway the first time the app starts.
 
 1. **Sign up** at **brevo.com** (free plan).
 2. **Verify your sender address.** Go to **Senders, Domains & Dedicated IPs → Senders → Add a sender**, enter the address emails should come from (e.g. your Gmail), and click the verification link Brevo sends you.
-3. **Create an API key.** Go to **SMTP & API → API Keys → Generate a new API key**, then copy it (it is shown once).
+3. **Create an API key.** Go to **SMTP & API → API Keys → Generate a new API key**. Choose **Restricted** access and set **Transactional email** to **All**. *Read* can't send, and the app then fails with HTTP 403. Copy the key; it is shown once.
 4. **Decide your `MAIL_FROM`:** it must use the verified address, e.g. `School ERP <yourname@gmail.com>`.
 
 > **Deliverability:** without your own domain, emails sent "from" a Gmail address via Brevo may land in spam. Ask beta testers to check spam, and mark the first email "Not spam". Adding a domain later fixes this.
@@ -104,5 +104,6 @@ Push to `master`. Render rebuilds and redeploys automatically (about 5–10 minu
 | Deploy fails: "JWT_SECRET ..." | Secret missing, shorter than 64 characters, or one of the example values |
 | Deploy fails: connection refused / SSL | `DATABASE_URL` missing `?sslmode=require`, or wrong host/user/password |
 | Sign-up says "couldn't send the confirmation email" | Wrong `BREVO_API_KEY`, or `MAIL_FROM` isn't a verified Brevo sender. Check the Render **Logs** for "Brevo returned HTTP …" |
+| Logs show `Brevo returned HTTP 403 … not authorized for resource transactional.email` | The API key's *Transactional email* permission is *Read*; edit the key in Brevo and set it to **All** (no need to change Render) |
 | Site loads slowly the first time | Free instance was asleep (see step 6) |
 | "Too many attempts" for everyone | Rate limiter can't see real client IPs; check logs for the IP on "Rate limit hit" lines |
